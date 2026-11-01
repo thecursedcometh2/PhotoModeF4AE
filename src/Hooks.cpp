@@ -1,4 +1,5 @@
 #include "Hooks.h"
+#include "CameraMath.h"
 
 #include "Input.h"
 #include "PhotoMode/Hotkeys.h"
@@ -7,14 +8,23 @@
 
 namespace PhotoMode
 {
-	struct FromEulerAnglesZXY
-	{
-		static void thunk(RE::NiMatrix3* a_matrix, float a_z, float a_x, float a_y)
-		{
-			return func(a_matrix, a_z, a_x, MANAGER(PhotoMode)->GetViewRoll(a_y));
-		}
-		static inline REL::Relocation<decltype(thunk)> func;
-	};
+    // Intercept the public camera-state rotation result rather than a call
+    // instruction inside GetRotation. Slot 0x0C is declared in TESCameraState.
+    struct FreeCameraGetRotation
+    {
+        static void thunk(const RE::FreeCameraState* state, RE::NiQuaternion& rotation)
+        {
+            func(state, rotation);
+            if (!MANAGER(PhotoMode)->IsActive()) return;
+            const float roll = MANAGER(PhotoMode)->GetViewRoll(0.0f);
+            if (roll == 0.0f) return;
+            const auto result = CameraMath::ApplyLocalRoll(
+                {rotation.w, rotation.x, rotation.y, rotation.z}, roll);
+            rotation = {result.w, result.x, result.y, result.z};
+        }
+        static inline REL::Relocation<decltype(thunk)> func;
+        static inline constexpr std::size_t idx = 0x0C;
+    };
 
 	struct DOF_IsActive
 	{
@@ -44,15 +54,15 @@ namespace PhotoMode
 
 	struct CallParams
 	{
-		static void thunk(RE::PauseMenu* a_this, const RE::Scaleform::GFx::FunctionHandler::Params& a_params)
+		static void thunk(RE::PauseMenu* a_this, const Scaleform::GFx::FunctionHandler::Params& a_params)
 		{
 			auto id = reinterpret_cast<std::uintptr_t>(a_params.userData);
 			if (id == 16 && MANAGER(PhotoMode)->CanActivateFromPauseMenu()) {
 				if (auto& movie = a_this->uiMovie) {
-					RE::Scaleform::GFx::Value selectedEntry;
+					Scaleform::GFx::Value selectedEntry;
 					if (movie->GetVariable(&selectedEntry, "root1.Menu_mc.MainPanel_mc.List_mc.selectedEntry")) {
-						RE::Scaleform::GFx::Value entryText;
-						RE::Scaleform::GFx::Value entryState;
+						Scaleform::GFx::Value entryText;
+						Scaleform::GFx::Value entryState;
 						if (auto result = selectedEntry.GetMember("text", &entryText); result && std::string(entryText.GetString()) == "$PM_Title_Menu") {
 							if (result = selectedEntry.GetMember("disabled", &entryState); result && !entryState.GetBoolean()) {
 								MANAGER(PhotoMode)->ActivateFromPauseMenu();
@@ -101,14 +111,17 @@ namespace PhotoMode
 
 	void InstallHooks()
 	{
-		REL::Relocation<std::uintptr_t> target{ REL::ID(2248281), 0x1B };  // FreeCameraState::GetRotation
-		stl::write_thunk_call<FromEulerAnglesZXY>(target.address());
+		stl::write_vfunc<RE::FreeCameraState, FreeCameraGetRotation>();
 
 		stl::write_vfunc<RE::ImageSpaceEffectBokehDepthOfField, Bokeh_IsActive>();
 		stl::write_vfunc<RE::ImageSpaceEffectDepthOfField, DOF_IsActive>();
 
 		stl::write_vfunc<RE::PauseMenu, CallParams>();
-		stl::write_vfunc<RE::MenuOpenHandler, MenuOpenHandler_OnButtonEvent>();
+		// This revision declares MenuOpenHandler::VTABLE privately. Use the
+        // same public generated vtable registry entry, without changing its ID.
+        REL::Relocation<std::uintptr_t> menuOpenVtable{ RE::VTABLE::MenuOpenHandler[0] };
+        MenuOpenHandler_OnButtonEvent::func = menuOpenVtable.write_vfunc(
+            MenuOpenHandler_OnButtonEvent::idx, MenuOpenHandler_OnButtonEvent::thunk);
 
 		stl::write_vfunc<RE::TESIdleForm, SetFormEditorID>();
 	}
@@ -141,7 +154,7 @@ namespace Screenshot
 
 	void InstallHooks()
 	{
-		REL::Relocation<std::uintptr_t> target{ REL::ID(2228913) };  // Main::Swap ☑
+		REL::Relocation<std::uintptr_t> target{ REL::ID(2228913) };  // Main::Swap; target-runtime offset remains unverified
 		stl::write_thunk_call<TakeScreenshot>(target.address() + 0x2C6);
 	}
 }

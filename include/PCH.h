@@ -10,7 +10,7 @@
 
 #include "F4SE/F4SE.h"
 #include "RE/Fallout.h"
-#include "REX/REX/Singleton.h"
+#include "REX/REX.h"
 
 #include <codecvt>
 #include <fstream>
@@ -25,7 +25,6 @@
 #include <rapidfuzz/rapidfuzz_all.hpp>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <srell.hpp>
-#include <xbyak/xbyak.h>
 
 #include "ImGui/Backend/imgui_impl_win32.h"
 #include "imgui_internal.h"
@@ -33,21 +32,21 @@
 #include <imgui_freetype.h>
 #include <imgui_impl_dx11.h>
 
-#include <ClibUtil/RNG.hpp>
-#include <ClibUtil/hash.hpp>
-#include <ClibUtil/simpleINI.hpp>
-#include <ClibUtil/string.hpp>
+#include <CLIBUtil/rng.hpp>
+#include <CLIBUtil/hash.hpp>
+#include <CLIBUtil/simpleINI.hpp>
+#include <CLIBUtil/string.hpp>
 
 #define DLLEXPORT __declspec(dllexport)
 
-namespace logger = F4SE::log;
+#include "Platform.h"
 
 using EventResult = RE::BSEventNotifyControl;
 
 using namespace std::literals;
 using namespace clib_util;
 using namespace string::literals;
-using namespace RE::literals;
+
 
 template <class T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -71,24 +70,24 @@ using StringMap = ankerl::unordered_dense::map<std::string, D, string_hash, std:
 
 namespace stl
 {
-	using namespace F4SE::stl;
+	
 
 	template <class T>
 	void write_thunk_call(std::uintptr_t a_src)
 	{
-		F4SE::AllocTrampoline(14);
+		
 
-		auto& trampoline = F4SE::GetTrampoline();
+		auto& trampoline = REL::GetTrampoline();
 		T::func = trampoline.write_call<5>(a_src, T::thunk);
 	}
 
 	template <class T>
 	void write_thunk_jmp(std::uintptr_t a_src)
 	{
-		F4SE::AllocTrampoline(14);
+		
 
-		auto& trampoline = F4SE::GetTrampoline();
-		T::func = trampoline.write_branch<5>(a_src, T::thunk);
+		auto& trampoline = REL::GetTrampoline();
+		T::func = trampoline.write_jmp<5>(a_src, T::thunk);
 	}
 
 	template <class F, size_t index, class T>

@@ -11,7 +11,7 @@
 namespace PhotoMode
 {
 	class Manager :
-		public REX::Singleton<Manager>,
+		public REX::TSingleton<Manager>,
 		public RE::BSTEventSink<RE::MenuOpenCloseEvent>
 	{
 	public:
@@ -49,6 +49,9 @@ namespace PhotoMode
 		std::pair<ImGui::Texture*, float> GetOverlay() const;
 
 	private:
+        bool originalSavingAllowed{ true };
+        std::array<bool, 5> originalHandlerStates{};
+        std::array<RE::BSInputEventUser*, 5> originalHandlers{};
 		enum TAB_TYPE : std::int32_t
 		{
 			kCamera,
@@ -87,10 +90,10 @@ namespace PhotoMode
 		bool hiddenUI{ false };
 		bool blockInput{ false };
 
-		REX::EnumSet<RE::UEFlag, std::uint32_t> controlFlags{
-			RE::UEFlag::kActivate,
-			RE::UEFlag::kMenu,
-			RE::UEFlag::kVATS
+		REX::TEnumSet<RE::UserEvents::USER_EVENT_FLAG, std::uint32_t> controlFlags{
+			RE::UserEvents::USER_EVENT_FLAG::kActivate,
+			RE::UserEvents::USER_EVENT_FLAG::kMenu,
+			RE::UserEvents::USER_EVENT_FLAG::kVATS
 		};
 		RE::BSTSmartPointer<RE::BSInputEnableLayer> inputLayer{};
 

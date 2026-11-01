@@ -1,0 +1,73 @@
+{
+    __meta__ = {
+        version = "1.0"
+    },
+    ["windows|x64"] = {
+        ["cmake#31fecfc4"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "3.31.6"
+        },
+        ["directxtex 2025.07#a0c1e88b"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "2025.07"
+        },
+        ["freetype 2.13.3#a6731a2d"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "2.13.3"
+        },
+        ["meson#31fecfc4"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "1.12.1"
+        },
+        ["ninja#31fecfc4"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "1.13.2"
+        },
+        ["pkgconf#31fecfc4"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "2.5.1"
+        },
+        ["python 3.x#31fecfc4"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "3.14.3"
+        },
+        ["rapidfuzz v3.3.3#31fecfc4"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "v3.3.3"
+        },
+        ["spdlog v1.16.0#9c36f0a9"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "v1.16.0"
+        },
+        ["srell 4.063#31fecfc4"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "4.063"
+        },
+        ["unordered_dense v4.8.1#31fecfc4"] = {
+            repo = {
+                url = "lib/xmake-repo"
+            },
+            version = "v4.8.1"
+        }
+    }
+}

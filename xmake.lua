@@ -1,0 +1,57 @@
+set_xmakever("3.0.3")
+set_project("PhotoModeF4")
+set_version("2.1.3")
+set_languages("c++23")
+set_encodings("utf-8")
+add_rules("mode.debug", "mode.releasedbg")
+set_policy("package.requires_lock", true)
+set_policy("package.precompiled", false)
+-- This local repository is an immutable git submodule, including transitive recipes.
+add_repositories("photomode-pinned lib/xmake-repo")
+set_runtimes("MD")
+add_requires("directxtex 2025.07", {configs = {shared = false, dx11 = true, dx12 = false}})
+add_requires("freetype 2.13.3", {configs = {shared = false, zlib = false}})
+add_requires("rapidfuzz v3.3.3", "srell 4.063", "unordered_dense v4.8.1")
+includes("lib/commonlibf4")
+
+target("photomode-imgui")
+    set_kind("static")
+    add_files("lib/imgui/imgui*.cpp", "lib/imgui/backends/imgui_impl_dx11.cpp", "lib/imgui/misc/freetype/imgui_freetype.cpp")
+    add_includedirs("lib/imgui", "lib/imgui/backends", "lib/imgui/misc/freetype", {public = true})
+    add_defines("IMGUI_ENABLE_FREETYPE", "IMGUI_USE_WCHAR32", {public = true})
+    add_packages("freetype", {public = true})
+    add_syslinks("d3d11", "d3dcompiler", "dxgi")
+
+target("po3_PhotoModeF4")
+    set_version("2.1.3")
+    set_basename("po3_PhotoModeF4")
+    set_license("GPL-3.0-or-later") -- Additional linking/modding permissions: THIRD_PARTY_NOTICES.md
+    add_rules("commonlibf4.plugin", {
+        name = "po3_PhotoModeF4", author = "powerofthree",
+        description = "Photo Mode for Fallout 4 1.11.240.0",
+        options = {address_library = true, layout_dependent = true}
+    })
+    set_values("commonlib.plugin.install", false)
+    set_symbols("debug")
+    add_deps("photomode-imgui")
+    add_packages("directxtex", "rapidfuzz", "srell", "unordered_dense")
+    add_includedirs("include", "lib/clib-util/include")
+    add_files("src/**.cpp")
+    set_pcxxheader("include/PCH.h")
+    add_defines("UNICODE", "_UNICODE")
+    add_syslinks("windowscodecs", "ole32", "shell32")
+    on_load(function(target)
+        assert(is_plat("windows") and is_arch("x64"), "Photo Mode requires Windows x64/MSVC; use Windows CI from Linux")
+    end)
+
+-- Exercise the real DirectXTex/WIC code independently of Fallout 4.
+target("photomode-image-tests")
+    set_default(false)
+    set_kind("binary")
+    add_deps("commonlibf4", "photomode-imgui")
+    add_packages("directxtex", "rapidfuzz", "srell", "unordered_dense")
+    add_includedirs("include", "lib/clib-util/include")
+    add_files("src/Graphics.cpp", "tests/windows_image_tests.cpp")
+    set_pcxxheader("include/PCH.h")
+    add_defines("UNICODE", "_UNICODE")
+    add_syslinks("windowscodecs", "ole32", "shell32")

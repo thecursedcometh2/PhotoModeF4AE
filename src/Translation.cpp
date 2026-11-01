@@ -4,7 +4,7 @@ namespace Translation
 {
 	std::string Manager::GetGameLanguage()
 	{
-		return string::toupper("sLanguage:General"_ini.value());
+		return string::toupper(RE::GetINISetting("sLanguage:General")->GetString());
 	}
 
 	void Manager::BuildTranslationMap()
@@ -50,10 +50,14 @@ namespace Translation
 			// remove leading whitespace
 			std::getline(ss >> std::ws, value);
 			// remove space/new line at end
-			if (std::isspace(value.back())) {
+			if (!value.empty() && std::iswspace(value.back())) {
 				value.pop_back();
 			}
-			translationMap.emplace(*stl::utf16_to_utf8(key), *stl::utf16_to_utf8(value));
+			const auto utfKey = stl::utf16_to_utf8(key);
+            const auto utfValue = stl::utf16_to_utf8(value);
+            if (utfKey && utfValue && !utfKey->empty()) {
+                translationMap.emplace(*utfKey, *utfValue);
+            }
 		}
 
 		return true;
@@ -63,9 +67,14 @@ namespace Translation
 	{
 		const auto scaleformManager = RE::BSScaleformManager::GetSingleton();
 		const auto loader = scaleformManager ? scaleformManager->loader : nullptr;
-		const auto translator = loader ? static_cast<RE::BSScaleformTranslator*>(loader->GetStateAddRef(RE::Scaleform::GFx::State::StateType::kTranslator)) : nullptr;
+		const auto translator = loader ? static_cast<RE::BSScaleformTranslator*>(loader->GetStateAddRef(Scaleform::GFx::State::StateType::kTranslator)) : nullptr;
 
-		auto FetchTranslation = [this](RE::BSScaleformTranslator* a_trns, const wchar_t* a_key) {
+		if (!translator) {
+            logger::error("Scaleform translator unavailable; using file translations");
+            return;
+        }
+
+        auto FetchTranslation = [this](RE::BSScaleformTranslator* a_trns, const wchar_t* a_key) {
 			auto it = a_trns->translator.translationMap.find(a_key);
 			if (it != a_trns->translator.translationMap.end()) {
 				translationMap.emplace(*stl::utf16_to_utf8(a_key), *stl::utf16_to_utf8(it->second.data()));

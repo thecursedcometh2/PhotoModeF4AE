@@ -18,7 +18,7 @@ namespace ImGui
 		kSelectedBG,
 	};
 
-	class Styles : public REX::Singleton<Styles>
+	class Styles : public REX::TSingleton<Styles>
 	{
 	public:
 		ImU32  GetColorU32(USER_STYLE a_style) const;

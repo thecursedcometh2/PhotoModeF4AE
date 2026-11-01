@@ -7,9 +7,10 @@ namespace PhotoMode
 		imods.InitForms();
 
 		const auto IMGS = RE::ImageSpaceManager::GetSingleton();
-		if (IMGS->baseData) {
-			imageSpaceData = *IMGS->baseData;
-		}
+		originalOverride = IMGS->overRideBaseData;
+        if (const auto effective = originalOverride ? originalOverride : IMGS->baseData) {
+            imageSpaceData = *effective;
+        }
 		IMGS->overRideBaseData = &imageSpaceData;
 	}
 
@@ -18,7 +19,10 @@ namespace PhotoMode
 		// reset imagespace
 		const auto IMGS = RE::ImageSpaceManager::GetSingleton();
 		if (a_fullReset) {
-			IMGS->overRideBaseData = nullptr;
+			if (IMGS->overRideBaseData == &imageSpaceData) {
+                IMGS->overRideBaseData = originalOverride;
+            }
+            originalOverride = nullptr;
 		} else if (IMGS->overRideBaseData) {
 			if (IMGS->baseData) {
 				imageSpaceData = *IMGS->baseData;

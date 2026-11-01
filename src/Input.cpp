@@ -451,7 +451,9 @@ namespace Input
 				}
 				break;
 			default:
-				io.AddMouseButtonEvent(ToImGuiKey_Mouse(a_key), a_keyPressed);
+				if (const auto key = ToImGuiKey_Mouse(a_key); key != ImGuiKey_None) {
+                    io.AddMouseButtonEvent(key - ImGuiKey_MouseLeft, a_keyPressed);
+                }
 				break;
 			}
 		} else {
@@ -473,8 +475,8 @@ namespace Input
 			}
 
 			if (analog) {
-				io.AddKeyAnalogEvent(key, a_value, a_keyPressed);
-			} else {
+				io.AddKeyAnalogEvent(key, a_keyPressed, a_value);
+			} else if (key != ImGuiKey_None) {
 				io.AddKeyEvent(key, a_keyPressed);
 			}
 		}
@@ -536,7 +538,8 @@ namespace Input
 
 		// recreate tilt event for mouse/gamepad
 		if (inputDevice == DEVICE::kMouse || inputDevice == DEVICE::kGamepadDirectX || inputDevice == DEVICE::kGamepadOrbis) {
-			if (auto freeCameraState = static_cast<RE::FreeCameraState*>(RE::PlayerCamera::GetSingleton()->currentState.get())) {
+			if (const auto state = RE::PlayerCamera::GetSingleton()->currentState; state && state->id == RE::CameraState::kFree) {
+                const auto freeCameraState = static_cast<RE::FreeCameraState*>(state.get());
 				const auto getKey = [this](std::string_view action, RE::INPUT_DEVICE device) {
 					auto key = RE::ControlMap::GetSingleton()->GetMappedKey(action, device, RE::UserEvents::INPUT_CONTEXT_ID::kTFC);
 					GetHotKey(device, key);

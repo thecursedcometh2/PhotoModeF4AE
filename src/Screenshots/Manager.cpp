@@ -114,55 +114,55 @@ namespace Screenshot
 		return autoHideMenus;
 	}
 
-	bool Manager::TakeScreenshot()
-	{
-		bool skipVanillaScreenshot = false;
-
-		const auto renderer = RE::BSGraphics::RendererData::GetSingleton();
-		if (!renderer) {
-			return skipVanillaScreenshot;
-		}
-
-		// capture screenshot
-		DirectX::ScratchImage inputImage{};
-
-		const ComPtr<ID3D11Device>        device{ (ID3D11Device*)renderer->device };
-		const ComPtr<ID3D11DeviceContext> deviceContext{ (ID3D11DeviceContext*)renderer->context };
-
-		const auto       renderTarget = RE::BSGraphics::RenderTargetManager::GetSingleton().renderTargetID[63];
-		ID3D11Texture2D* texture2D{ (ID3D11Texture2D*)renderer->renderTargets[renderTarget].texture };
-
-		if (auto result = DirectX::CaptureTexture(device.Get(), deviceContext.Get(), texture2D, inputImage); result == S_OK) {
-			skipVanillaScreenshot = true;
-
-			std::string pngPath = useCustomFolderDirectory ? std::format("{}\\Screenshot{}.png", photoDirectory.string(), GetIndex()) :
-			                                                 std::format("{}_{}.png", RE::GetINISetting("sScreenShotBaseName:Display")->GetString(), GetIndex());
-
-			// apply overlay
-			if (const auto [overlay, alpha] = MANAGER(PhotoMode)->GetOverlay(); overlay) {
-				DirectX::ScratchImage overlayImage;
-				DirectX::ScratchImage blendedImage;
-
-				// Convert PNG B8G8R8 format to R8G8B8
-				DirectX::Convert(overlay->image->GetImages(), 1,
-					overlay->image->GetMetadata(),
-					inputImage.GetMetadata().format, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT,
-					overlayImage);
-
-				Texture::AlphaBlendImage(inputImage.GetImages(), overlayImage.GetImages(), blendedImage, alpha);
-				Texture::SaveToPNG(blendedImage, pngPath);
-
-				overlayImage.Release();
-				blendedImage.Release();
-			} else {
-				Texture::SaveToPNG(inputImage, pngPath);
-			}
-
-			IncrementIndex();
-		}
-
-		inputImage.Release();
-
-		return skipVanillaScreenshot;
-	}
+    bool Manager::TakeScreenshot()
+    {
+        const auto renderer = RE::BSGraphics::GetRendererData();
+        if (!renderer || !renderer->device || !renderer->context) return false;
+        // This render-target mapping remains game-specific; see RUNTIME_AUDIT.md.
+        const auto targets = RE::BSGraphics::RenderTargetManager::GetSingleton();
+        if (!targets) return false;
+        const auto target = targets->renderTargetID[63];
+        if (target >= std::size(renderer->renderTargets)) return false;
+        auto* texture = reinterpret_cast<ID3D11Texture2D*>(renderer->renderTargets[target].texture);
+        if (!texture) return false;
+        DirectX::ScratchImage captured;
+        const auto capture = DirectX::CaptureTexture(reinterpret_cast<ID3D11Device*>(renderer->device),
+            reinterpret_cast<ID3D11DeviceContext*>(renderer->context), texture, captured);
+        if (FAILED(capture)) {
+            logger::error("Screenshot readback failed: HRESULT {}", static_cast<unsigned long>(capture));
+            return false;
+        }
+        const auto* source = captured.GetImage(0, 0, 0);
+        if (!source) return false;
+        DirectX::ScratchImage input;
+        const auto converted = Texture::ToRGBA8(*source, input);
+        if (FAILED(converted)) return false;
+        const std::string path = useCustomFolderDirectory ?
+            std::format("{}/Screenshot{}.png", photoDirectory.string(), GetIndex()) :
+            std::format("{}_{}.png", RE::GetINISetting("sScreenShotBaseName:Display")->GetString(), GetIndex());
+        bool saved = false;
+        if (const auto [overlay, alpha] = MANAGER(PhotoMode)->GetOverlay(); overlay) {
+            if (!overlay->image) return false;
+            const auto* original = overlay->image->GetImage(0, 0, 0);
+            if (!original) return false;
+            DirectX::ScratchImage rgba;
+            const auto convertedOverlay = Texture::ToRGBA8(*original, rgba);
+            if (FAILED(convertedOverlay)) return false;
+            DirectX::ScratchImage resized;
+            const auto* layer = rgba.GetImage(0, 0, 0);
+            if (layer->width != source->width || layer->height != source->height) {
+                if (FAILED(DirectX::Resize(*layer, source->width, source->height,
+                    DirectX::TEX_FILTER_CUBIC, resized))) return false;
+                layer = resized.GetImage(0, 0, 0);
+            }
+            DirectX::ScratchImage blended;
+            if (!Texture::AlphaBlendImage(input.GetImage(0, 0, 0), layer, blended, alpha)) return false;
+            saved = Texture::SaveToPNG(blended, path);
+        } else {
+            saved = Texture::SaveToPNG(input, path);
+        }
+        // Suppress vanilla capture and advance the index only after successful encoding.
+        if (saved) IncrementIndex();
+        return saved;
+    }
 }

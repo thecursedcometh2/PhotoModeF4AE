@@ -1,6 +1,5 @@
 #include "ImGui/Fonts/Manager.h"
 
-#include "ImGui/Fonts/BGSFonts.h"
 #include "ImGui/Fonts/IconsFontAwesome6.h"
 
 #include "ImGui/Renderer.h"
@@ -25,26 +24,17 @@ namespace Font
 		iconSize.second = static_cast<float>(a_ini.GetLongValue("Icons", "iLargeSize", 36)) * resolutionScale;
 	}
 
-	void Font::LoadFont(const std::uint32_t* a_data, const std::uint32_t a_dataSize, bool a_loadIcons)
-	{
-		ImFontConfig config;
-
-		const auto& io = ImGui::GetIO();
-		font = io.Fonts->AddFontFromMemoryCompressedTTF(a_data, a_dataSize, 0.0, &config);
-		if (a_loadIcons) {
-			config.MergeMode = true;
-			config.PixelSnapH = true;
-			config.OversampleH = config.OversampleV = 1;
-			io.Fonts->AddFontFromFileTTF(R"(Data\Interface\ImGuiFonts\)" FONT_ICON_FILE_NAME_FAS, 0.0f, &config);
-		}
-	}
-
 	void Font::LoadFont(bool a_loadIcons)
 	{
 		ImFontConfig config;
 
 		const auto& io = ImGui::GetIO();
-		font = io.Fonts->AddFontFromFileTTF(name.c_str(), 0.0f, &config);
+		config.Flags |= ImFontFlags_NoLoadError;
+        font = io.Fonts->AddFontFromFileTTF(name.c_str(), 0.0f, &config);
+        if (!font) {
+            logger::error("Missing external ImGui Fonts asset: {}. Install Nexus mod 88107.", name);
+            font = io.Fonts->AddFontDefault();
+        }
 		if (a_loadIcons) {
 			config.MergeMode = true;
 			config.PixelSnapH = true;
@@ -80,7 +70,7 @@ namespace Font
 		auto& io = ImGui::GetIO();
 
 		defaultFont.LoadFont(true);
-		controllerButtonFont.LoadFont(ControllerButtons_Data, ControllerButtons_Size, false);
+		// No embedded Bethesda glyphs are distributed. Controller prompts use text labels.
 
 		io.Fonts->Build();
 
@@ -121,7 +111,7 @@ namespace Font
 			if (const auto it = gamePad.find(key); it != gamePad.end()) {
 				return GetGamePadIcon(it->second);
 			}
-			return { unknownKeyController, true };
+			return { unknownKeyController, false };
 		}
 		return { unknownKey, false };
 	}
@@ -145,7 +135,7 @@ namespace Font
 			break;
 		}
 
-		return { text, true };
+		return { text, false };
 	}
 }
 
@@ -177,5 +167,5 @@ void ImGui::ButtonIconWithLabel(const char* a_text, const Font::Button& a_key, b
 	auto& [icon, useControllerButtonFont] = a_key;
 	ImGui::ButtonIcon(icon, useControllerButtonFont, a_centerIcon);
 	ImGui::SameLine();
-	ImGui::Text(a_text);
+	ImGui::TextUnformatted(a_text);
 }

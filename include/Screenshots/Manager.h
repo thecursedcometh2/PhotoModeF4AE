@@ -19,7 +19,7 @@ namespace Screenshot
 		std::int32_t index{ -1 };
 	};
 	
-	class Manager final : public REX::Singleton<Manager>
+	class Manager final : public REX::TSingleton<Manager>
 	{
 	public:
 		void LoadMCMSettings(const CSimpleIniA& a_ini);

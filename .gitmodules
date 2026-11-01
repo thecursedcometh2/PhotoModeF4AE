@@ -1,0 +1,12 @@
+[submodule "lib/commonlibf4"]
+	path = lib/commonlibf4
+	url = https://github.com/libxse/commonlibf4.git
+[submodule "lib/imgui"]
+	path = lib/imgui
+	url = https://github.com/powerof3/imgui.git
+[submodule "lib/clib-util"]
+	path = lib/clib-util
+	url = https://github.com/powerof3/CLibUtil.git
+[submodule "lib/xmake-repo"]
+	path = lib/xmake-repo
+	url = https://github.com/xmake-io/xmake-repo.git

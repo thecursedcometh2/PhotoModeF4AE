@@ -7,7 +7,6 @@ namespace Font
 		void LoadSettings(const CSimpleIniA& a_ini, const char* a_section);
 
 		void LoadFont(bool a_loadIcons);
-		void LoadFont(const std::uint32_t* a_data, const std::uint32_t a_dataSize, bool a_loadIcons);
 
 		ImFont* GetFont() const;
 
@@ -26,7 +25,7 @@ namespace Font
 		std::string ps4;
 	};
 
-	class Manager final : public REX::Singleton<Manager>
+	class Manager final : public REX::TSingleton<Manager>
 	{
 	public:
 		void LoadSettings();
@@ -165,18 +164,18 @@ namespace Font
 		};
 
 		Map<std::uint32_t, GamePadButton> gamePad{
-			{ F4SE::InputMap::kGamepadButtonOffset_START, { "O", "p" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_BACK, { "E", "z" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_LEFT_THUMB, { "H", "f" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_RIGHT_THUMB, { "M", "l" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_LEFT_SHOULDER, { "G", "g" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_RIGHT_SHOULDER, { "L", "m" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_A, { "A", "a" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_B, { "B", "d" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_X, { "C", "c" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_Y, { "D", "b" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_LT, { "I", "j" } },
-			{ F4SE::InputMap::kGamepadButtonOffset_RT, { "N", "o" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_START, { "Start", "Options" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_BACK, { "Back", "Share" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_LEFT_THUMB, { "L3", "L3" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_RIGHT_THUMB, { "R3", "R3" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_LEFT_SHOULDER, { "LB", "L1" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_RIGHT_SHOULDER, { "RB", "R1" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_A, { "A", "Cross" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_B, { "B", "Circle" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_X, { "X", "Square" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_Y, { "Y", "Triangle" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_LT, { "LT", "L2" } },
+			{ F4SE::InputMap::kGamepadButtonOffset_RT, { "RT", "R2" } },
 		};
 
 		Map<std::uint32_t, std::string> mouse{
@@ -184,7 +183,7 @@ namespace Font
 			{ 256 + 1, "Mouse2)" },
 			{ 256 + 2, "Mouse3)" },
 			{ 256 + 3, "Mouse4)" },
-			{ 256 + 7, "Mouse5)" },
+			{ 256 + 4, "Mouse5)" },
 			{ 256 + 5, "Mouse6)" },
 			{ 256 + 6, "Mouse7)" },
 			{ 256 + 7, "Mouse8)" },

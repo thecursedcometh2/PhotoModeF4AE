@@ -17,6 +17,7 @@ namespace PhotoMode
 	private:
 		// members
 		RE::ImageSpaceBaseData imageSpaceData{};
+        const RE::ImageSpaceBaseData* originalOverride{ nullptr };
 
 		RE::TESImageSpaceModifier* currentImod{ nullptr };
 		bool                       imodPlayed{ false };

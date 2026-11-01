@@ -12,7 +12,7 @@ namespace Input
 	};
 
 	class Manager final :
-		public REX::Singleton<Manager>,
+		public REX::TSingleton<Manager>,
 		public RE::BSInputEventUser
 	{
 	public:

@@ -26,7 +26,7 @@ namespace PhotoMode
 	bool Manager::IsValid()
 	{
 		const auto* controlMap = RE::ControlMap::GetSingleton();
-		if (!controlMap) {
+		if (!controlMap || controlMap->contextPriorityStack.empty()) {
 			return false;
 		}
 
@@ -94,8 +94,9 @@ namespace PhotoMode
 			hiddenUI = true;
 		}
 
-		// disable saving
-		RE::BGSSaveLoadManager::GetSingleton()->savingAllowed = false;
+		// Preserve pre-existing restrictions owned by the game or another mod.
+        originalSavingAllowed = RE::BGSSaveLoadManager::GetSingleton()->savingAllowed;
+        RE::BGSSaveLoadManager::GetSingleton()->savingAllowed = false;
 
 		// toggle freecam
 		if (originalcameraState != RE::CameraState::kFree) {
@@ -136,13 +137,23 @@ namespace PhotoMode
 			RE::BSInputEnableManager::GetSingleton()->EnableUserEvent(inputLayer->layerID, controlFlags.get(), a_enable, RE::UserEvents::SENDER_ID::kScript);
 		}
 
-		if (const auto pcControls = RE::PlayerControls::GetSingleton()) {
-			pcControls->sneakHandler->inputEventHandlingEnabled = a_enable;
-			pcControls->jumpHandler->inputEventHandlingEnabled = a_enable;
-			pcControls->attackHandler->inputEventHandlingEnabled = a_enable;
-			pcControls->readyWeaponHandler->inputEventHandlingEnabled = a_enable;
-			pcControls->meleeThrowHandler->inputEventHandlingEnabled = a_enable;
-		}
+        if (!a_enable) originalHandlers.fill(nullptr);
+        if (const auto controls = RE::PlayerControls::GetSingleton()) {
+            const std::array<RE::BSInputEventUser*, 5> handlers{
+                controls->sneakHandler, controls->jumpHandler, controls->attackHandler,
+                controls->readyWeaponHandler, controls->meleeThrowHandler};
+            for (std::size_t i = 0; i < handlers.size(); ++i) {
+                if (!handlers[i]) continue;
+                if (!a_enable) {
+                    originalHandlers[i] = handlers[i];
+                    originalHandlerStates[i] = handlers[i]->inputEventHandlingEnabled;
+                    handlers[i]->inputEventHandlingEnabled = false;
+                } else if (handlers[i] == originalHandlers[i]) {
+                    handlers[i]->inputEventHandlingEnabled = originalHandlerStates[i];
+                }
+            }
+        }
+        if (a_enable) originalHandlers.fill(nullptr);
 	}
 
 	bool Manager::OnFrameUpdate()
@@ -183,12 +194,14 @@ namespace PhotoMode
 		}
 
 		// reset controls
-		allowTextInput = false;
-		RE::ControlMap::GetSingleton()->SetTextEntryMode(false);
+		if (allowTextInput) {
+            RE::ControlMap::GetSingleton()->SetTextEntryMode(false);
+            allowTextInput = false;
+        }
 		TogglePlayerControls(true);
 
 		// allow saving
-		RE::BGSSaveLoadManager::GetSingleton()->savingAllowed = true;
+		RE::BGSSaveLoadManager::GetSingleton()->savingAllowed = originalSavingAllowed;
 
 		// restore HUD elements
 		RE::SendHUDMessage::PopHUDMode(RE::HUDModeType("DialogueCameraMode"));
@@ -200,8 +213,7 @@ namespace PhotoMode
 			sitWaitMenuOpen = false;
 		}
 
-		// restore VATS
-		RE::INISettingCollection::GetSingleton()->GetSetting("bVATSDisable:VATS")->SetBinary(true);
+		// VATS INI setting was never changed on entry; leave the game setting intact.
 
 		// reset variables
 		hiddenUI = false;
@@ -289,10 +301,8 @@ namespace PhotoMode
 
 		if (a_deactivate) {
 			// reset UI
-			if ((!menusAlreadyHidden || hiddenUI) && !RE::UI::GetSingleton()->menuSystemVisible) {
-				RE::UI::GetSingleton()->menuSystemVisible = true;
-				RE::Interface3D::Renderer::DisableAll(false);
-			}
+			RE::UI::GetSingleton()->menuSystemVisible = !menusAlreadyHidden;
+            RE::Interface3D::Renderer::DisableAll(menusAlreadyHidden);
 			resetWindow = true;
 			resetPlayerTabs = true;
 		} else {
@@ -624,17 +634,17 @@ namespace PhotoMode
 	{
 		if (auto menu = RE::UI::GetSingleton()->GetMenu<RE::PauseMenu>()) {
 			if (const auto& movie = menu->uiMovie) {
-				RE::Scaleform::GFx::Value entryList;
+				Scaleform::GFx::Value entryList;
 				if (movie->GetVariable(&entryList, "root1.Menu_mc.MainPanel_mc.List_mc.entryList")) {
 					std::optional<std::uint32_t> modMenuIndex = std::nullopt;
 
 					const auto size = entryList.GetArraySize();
 					for (std::uint32_t i = 0; i < size; i++) {
-						RE::Scaleform::GFx::Value entry;
+						Scaleform::GFx::Value entry;
 						if (!entryList.GetElement(i, &entry)) {
 							continue;
 						}
-						RE::Scaleform::GFx::Value entryText;
+						Scaleform::GFx::Value entryText;
 						if (!entry.GetMember("text", &entryText)) {
 							continue;
 						}
@@ -645,7 +655,7 @@ namespace PhotoMode
 					}
 
 					if (modMenuIndex) {
-						RE::Scaleform::GFx::Value entry;
+						Scaleform::GFx::Value entry;
 						movie->CreateObject(&entry);
 						entry.SetMember("text", "$PM_Title_Menu");
 						entry.SetMember("disabled", RE::UI::GetSingleton()->GetMenuOpen<RE::PipboyMenu>());
