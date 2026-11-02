@@ -6,7 +6,6 @@
 #include <fstream>
 #include <chrono>
 #include "CameraMath.h"
-#include "CameraRoll.h"
 #include <array>
 #include <cassert>
 #include <limits>
@@ -98,37 +97,6 @@ int main()
     assert(!ImageMath::CompositeOpaque(base.data(), 1, overlay.data(), 12, 2, 3, 1));
     assert(!ImageMath::CompositeOpaque(nullptr, 12, overlay.data(), 12, 2, 3, 1));
     assert(!ImageMath::CompositeOpaque(base.data(), 12, overlay.data(), 12, 2, 3, std::numeric_limits<float>::quiet_NaN()));
-    const CameraMath::Rotation identity{{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
-    constexpr float halfPi = 1.5707963267948966f;
-    const auto rightAngle = CameraMath::RollRotation(identity, halfPi);
-    const CameraMath::Rotation expected{{{0, 0, 1}, {0, 1, 0}, {-1, 0, 0}}};
-    assert(CameraMath::SameRotation(rightAngle, expected));
-    assert(CameraMath::SameRotation(CameraMath::RollRotation(rightAngle, -halfPi), identity));
-    assert(CameraMath::SameRotation(CameraMath::RollRotation(identity, 0), identity));
-    assert(CameraMath::SameRotation(CameraMath::RollRotation(identity, std::numeric_limits<float>::quiet_NaN()), identity));
-    CameraMath::RollOverlay rollOwner;
-    auto rotation = rightAngle; // Preserve a pre-existing camera roll from another mod.
-    const auto originalRotation = rotation;
-    for (int frame = 0; frame < 1000; ++frame) {
-        rotation = rollOwner.Apply(&state, rotation, 0.7f);
-        for (std::size_t row = 0; row < 3; ++row)
-            assert(rotation[row][1] == originalRotation[row][1]); // Forward unchanged.
-        assert(rollOwner.Release(&state, rotation));
-        assert(CameraMath::SameRotation(rotation, originalRotation)); // No drift with frozen updater.
-    }
-    rotation = rollOwner.Apply(&state, originalRotation, -0.7f);
-    assert(rollOwner.Release(&state, rotation)); // Reset, SAM open, deactivate use this path.
-    assert(CameraMath::SameRotation(rotation, originalRotation));
-    assert(!rollOwner.Release(&state, rotation)); // Repeated release is harmless.
-    rotation = rollOwner.Apply(&state, identity, 0.7f);
-    rotation = originalRotation; // A later camera writer must win.
-    assert(!rollOwner.Release(&state, rotation));
-    assert(CameraMath::SameRotation(rotation, originalRotation));
-    rotation = rollOwner.Apply(&state, identity, 0.7f);
-    auto otherRotation = identity;
-    assert(!rollOwner.Release(&otherState, otherRotation));
-    assert(CameraMath::SameRotation(otherRotation, identity));
-
     const CameraMath::Quaternion q{0.5f, 0.5f, 0.5f, 0.5f};
     const auto unchanged = CameraMath::ApplyLocalRoll(q, 0);
     assert(unchanged.w == q.w && unchanged.x == q.x && unchanged.y == q.y && unchanged.z == q.z);

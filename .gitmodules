@@ -10,3 +10,6 @@
 [submodule "lib/xmake-repo"]
 	path = lib/xmake-repo
 	url = https://github.com/xmake-io/xmake-repo.git
+[submodule "lib/minhook"]
+	path = lib/minhook
+	url = https://github.com/TsudaKageyu/minhook.git
