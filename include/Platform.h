@@ -4,7 +4,6 @@
 #include <ShlObj.h>
 #include <spdlog/spdlog.h>
 
-// Small project-owned adapters for utilities removed from the old CommonLib API.
 namespace logger
 {
     template <class... Args>

@@ -1,8 +1,6 @@
 #include "Hooks.h"
 #include "CameraMath.h"
-#include "CameraTrace.h"
 #include "VtableChain.h"
-#include <atomic>
 
 #include "Input.h"
 #include "PhotoMode/Hotkeys.h"
@@ -11,28 +9,19 @@
 
 namespace PhotoMode
 {
-    namespace
-    {
-        std::atomic<std::uint64_t> rotationCalls{}, rollApplications{};
-    }
-
     struct FreeCameraRotation
     {
         static void thunk(const RE::FreeCameraState* state, RE::NiQuaternion& rotation)
         {
-            ++rotationCalls;
-            hook.Original()(state, rotation); // SAM (or vanilla), exactly once.
+            hook.Original()(state, rotation);
             const auto mode = MANAGER(PhotoMode);
             const auto camera = RE::PlayerCamera::GetSingleton();
             if (!mode->IsActive() || !camera || camera->currentState.get() != state) return;
             const float roll = mode->GetViewRoll(0.0f);
             if (!std::isfinite(roll) || roll == 0.0f) return;
-            // Preserve the complete downstream rotation, including SAM roll.
-            // SAM suspends our input, never this selected roll contribution.
             const auto result = CameraMath::ApplyLocalRoll(
                 {rotation.w, rotation.x, rotation.y, rotation.z}, roll);
             rotation = {result.w, result.x, result.y, result.z};
-            if (++rollApplications == 1) logger::info("View roll applied through the chained live rotation getter");
         }
         static inline Hooks::VtableChain<decltype(&thunk)> hook;
         static inline bool reportedFailure{};
@@ -41,21 +30,16 @@ namespace PhotoMode
         {
             const auto camera = RE::PlayerCamera::GetSingleton();
             if (!camera || !camera->currentState || camera->currentState->id != RE::CameraState::kFree) return;
-            const auto live = CameraTrace::ReadPointer(reinterpret_cast<std::uintptr_t>(camera->currentState.get()));
+            const auto live = Hooks::ReadPointer(reinterpret_cast<std::uintptr_t>(camera->currentState.get()));
             static REL::Relocation<std::uintptr_t> expected{ RE::VTABLE::FreeCameraState[0] };
             if (!live || *live != expected.address()) {
                 if (!reportedFailure) logger::error("View roll: unexpected live free-camera vtable; refusing an unverified slot");
                 reportedFailure = true;
                 return;
             }
-            // Slot 0x0C is confirmed by the user's update-code trace:
-            // Fallout4.exe+1022444 calls [vtable+0x60]. No executable patch.
             constexpr std::size_t slot = 0x0C;
             const auto result = hook.Install(*live + slot * sizeof(void*), &thunk);
-            if (result == Hooks::ChainResult::installed) {
-                logger::info("View roll chained after {} on first Photo Mode activation; roll remains active in SAM",
-                    CameraTrace::Describe(reinterpret_cast<std::uintptr_t>(hook.Original())));
-            } else if (result != Hooks::ChainResult::alreadyInstalled && !reportedFailure) {
+            if (result != Hooks::ChainResult::installed && result != Hooks::ChainResult::alreadyInstalled && !reportedFailure) {
                 logger::error("View roll chain unavailable (status {}); refusing to re-chain a later wrapper to avoid recursion",
                     std::to_underlying(result));
                 reportedFailure = true;
@@ -66,12 +50,6 @@ namespace PhotoMode
     void EnsureViewRollHook()
     {
         FreeCameraRotation::Install();
-    }
-
-    void LogViewRollStatus(float degrees)
-    {
-        logger::info("View roll changed to {} degrees; live chain={}, rotation calls={}, roll applications={}",
-            degrees, FreeCameraRotation::hook.OwnsSlot(), rotationCalls.load(), rollApplications.load());
     }
 
 	struct DOF_IsActive
@@ -159,14 +137,11 @@ namespace PhotoMode
 
 	void InstallHooks()
 	{
-		// Roll is chained on activation, after SAM finishes installing its getter.
 
 		stl::write_vfunc<RE::ImageSpaceEffectBokehDepthOfField, Bokeh_IsActive>();
 		stl::write_vfunc<RE::ImageSpaceEffectDepthOfField, DOF_IsActive>();
 
 		stl::write_vfunc<RE::PauseMenu, CallParams>();
-		// This revision declares MenuOpenHandler::VTABLE privately. Use the
-        // same public generated vtable registry entry, without changing its ID.
         REL::Relocation<std::uintptr_t> menuOpenVtable{ RE::VTABLE::MenuOpenHandler[0] };
         MenuOpenHandler_OnButtonEvent::func = menuOpenVtable.write_vfunc(
             MenuOpenHandler_OnButtonEvent::idx, MenuOpenHandler_OnButtonEvent::thunk);

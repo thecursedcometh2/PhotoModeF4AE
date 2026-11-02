@@ -37,7 +37,6 @@ namespace PhotoMode
 		// members
 		OriginalState                                    originalState{};
 		float                                            currentFOV{};
-		bool                                             rollChangeLogged{};
 		float                                            currentViewRoll{};
 		float                                            currentViewRollDegrees{};
 		RE::Setting*                                     fFreeCameraTranslationSpeed{ nullptr };

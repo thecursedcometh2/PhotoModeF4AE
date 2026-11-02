@@ -1,5 +1,9 @@
 # Fallout 4 1.11.240.0 audit
 
+The tester confirmed the 2.1.7 view-roll fix. Version 2.1.8 retains that hook and
+removes temporary diagnostics. Historical investigation notes below describe
+superseded builds, not additional hooks in the current DLL.
+
 **Not runtime-certified.** No Fallout4.exe, matching Address Library database,
 GPU/game session or disassembler evidence is available in this environment.
 The pinned CommonLibF4 header explicitly defines RUNTIME_1_11_240 and selects it
@@ -173,3 +177,13 @@ getter and confirms the game dispatches to it from state.Update; the assumption
 that camera virtual dispatch itself was unused was incomplete. The unused target
 was the original EXE getter after SAM replaced the slot. The late-chain fix above
 uses this evidence; the specific observed SAM RVA is never hardcoded.
+
+## Final cleanup (2.1.8)
+
+The user confirmed that view roll now works and requested a final build without
+temporary diagnostics. Rotation/application counters, slider logging/state, module
+address descriptions and executable code sampling are removed. Safe pointer reads
+remain in the hook-chain helper; failure checks and error logs remain. The late
+vtable capture, downstream call, quaternion composition, SAM input guard and reset
+behavior are unchanged. The user confirmation covers the reported regression,
+not every hook or every row of the broader in-game matrix.

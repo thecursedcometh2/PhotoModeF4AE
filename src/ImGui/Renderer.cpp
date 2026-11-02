@@ -79,7 +79,6 @@ namespace ImGui::Renderer
 		}
 	}
 
-	//
 	struct PostDisplay
 	{
 		static void thunk(RE::IMenu* a_menu)
@@ -113,8 +112,6 @@ namespace ImGui::Renderer
 
 	void Install()
 	{
-		//REL::Relocation<std::uintptr_t> target{ REL::ID(2276814), 0x31D };  // BSGraphics::InitD3D
-		//stl::write_thunk_call<CreateD3DAndSwapChain>(target.address());
 
 		stl::write_vfunc<RE::HUDMenu, PostDisplay>();
 	}
