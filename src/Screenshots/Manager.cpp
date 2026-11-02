@@ -1,4 +1,5 @@
 #include "Screenshots/Manager.h"
+#include "ScreenshotFiles.h"
 
 #include "Graphics.h"
 #include "PhotoMode/Manager.h"
@@ -6,25 +7,11 @@
 
 namespace Screenshot
 {
-	Image::Image(std::string_view a_path, std::uint32_t a_index) :
-		index(a_index),
-		path(std::format("{}/screenshot{}.dds", a_path, a_index))
-	{}
-
-	Image::Image(std::string& a_path) :
-		path(Texture::Sanitize(a_path))
-	{
-		srell::smatch       matches;
-		static srell::regex screenshotPattern{ R"(screenshot(\d+))" };
-		if (srell::regex_search(path, matches, screenshotPattern)) {
-			if (matches.size() > 1) {
-				index = string::to_num<std::int32_t>(matches[1].str());
-			}
-		}
-	}
-	
 	void Manager::LoadMCMSettings(const CSimpleIniA& a_ini)
 	{
+        if (const auto persisted = a_ini.GetValue("Screenshots", "iScreenshotIndex", nullptr)) {
+            if (const auto parsed = ParseIndex(persisted)) index = std::max(index, *parsed);
+        }
 		useCustomFolderDirectory = a_ini.GetBoolValue("Screenshots", "bCustomPhotoFolder", useCustomFolderDirectory);
 		autoHideMenus = a_ini.GetBoolValue("Screenshots", "bAutoHideMenus", autoHideMenus);
 		allowMultiScreenshots = a_ini.GetBoolValue("Screenshots", "bMultiScreenshots", allowMultiScreenshots);
@@ -43,66 +30,51 @@ namespace Screenshot
 		std::error_code ec;
 		if (!std::filesystem::exists(photoDirectory, ec)) {
 			logger::info("\tPhoto directory does not exist, creating it... ({})", ec.message());
-			std::filesystem::create_directory(photoDirectory);
+			std::filesystem::create_directories(photoDirectory, ec);
+            if (ec) logger::error("Could not create photo directory: {}", ec.message());
 		}
 
 		logger::info("\tScreenshot directory : {}", photoDirectory.string());
 
-		Settings::GetSingleton()->Save(FileType::kMCM, [this](auto& ini) {
-			index = ini.GetLongValue("Screenshots", "iScreenshotIndex", index);
-			AssignHighestPossibleIndex();
-			ini.SetLongValue("Screenshots", "iScreenshotIndex", index);
-		});
+        // Discovery must run even when neither optional MCM INI exists.
+        AssignHighestPossibleIndex();
 
 		logger::info("\tscreenshot index : {}", index);
 	}
 
-	std::uint32_t Manager::GetIndex() const
+	std::uint64_t Manager::GetIndex() const
 	{
 		return index;
 	}
 
-	void Manager::AssignHighestPossibleIndex()
-	{
-		const auto get_photos_index = [this]() {
-			std::vector<Image> photos{};
-			for (const auto& entry : std::filesystem::directory_iterator(photoDirectory)) {
-				if (entry.is_regular_file()) {
-					if (const auto& path = entry.path(); path.extension() == ".png") {
-						auto pathStr = entry.path().string();
-						photos.push_back(pathStr);
-					}
-				}
-			}
-			if (photos.empty()) {
-				return -1;
-			}
-			std::sort(photos.begin(), photos.end());
-			return photos.back().index + 1;
-		};
+    std::filesystem::path Manager::DestinationPrefix() const
+    {
+        if (useCustomFolderDirectory) return photoDirectory / "Screenshot";
+        const auto setting = RE::GetINISetting("sScreenShotBaseName:Display");
+        auto base = setting ? setting->GetString() : std::string_view{};
+        if (base.empty()) base = "ScreenShot";
+        auto prefix = std::filesystem::u8path(base.begin(), base.end());
+        prefix += "_";
+        return prefix;
+    }
 
-		auto mcmIndex = index;
-		auto photosIndex = get_photos_index();
-		auto vanillaScreenshotIndex = RE::GetINISetting("iScreenShotIndex:Display")->GetInt();
+    void Manager::AssignHighestPossibleIndex()
+    {
+        const auto vanilla = RE::GetINISetting("iScreenShotIndex:Display");
+        if (vanilla && vanilla->GetInt() > 0) index = std::max(index, static_cast<std::uint64_t>(vanilla->GetInt()));
+        const auto prefix = DestinationPrefix();
+        std::error_code error;
+        if (!prefix.parent_path().empty()) std::filesystem::create_directories(prefix.parent_path(), error);
+        if (!error) index = NextFileIndex(prefix, index, error);
+        if (error) logger::error("Could not scan screenshot destination {}: {}. Exclusive creation still prevents replacement.", prefix.string(), error.message());
+    }
 
-		logger::info("\tAssigning highest screenshot index...");
-		logger::info("\t\tmcm index: {}", mcmIndex);
-		logger::info("\t\tphoto directory index: {}", photosIndex);
-		logger::info("\t\tvanilla directory index: {}", vanillaScreenshotIndex);
-
-		std::set<std::int32_t> indices;
-		indices.insert({ mcmIndex, photosIndex, vanillaScreenshotIndex });
-
-		index = *indices.rbegin();
-	}
-
-	void Manager::IncrementIndex()
-	{
-		index++;
-		Settings::GetSingleton()->Save(FileType::kMCM, [this](auto& ini) {
-			ini.SetLongValue("Screenshots", "iScreenshotIndex", index);
-		});
-	}
+    void Manager::IncrementIndex()
+    {
+        if (index != std::numeric_limits<std::uint64_t>::max()) ++index;
+        // Recover from filenames on restart. MCM's i* settings are signed 32-bit;
+        // never write our 64-bit bookkeeping into its user settings store.
+    }
 
 	bool Manager::AllowMultiScreenshots() const
 	{
@@ -116,6 +88,7 @@ namespace Screenshot
 
     bool Manager::TakeScreenshot()
     {
+        const std::scoped_lock lock(screenshotMutex);
         const auto renderer = RE::BSGraphics::GetRendererData();
         if (!renderer || !renderer->device || !renderer->context) return false;
         // This render-target mapping remains game-specific; see RUNTIME_AUDIT.md.
@@ -137,9 +110,8 @@ namespace Screenshot
         DirectX::ScratchImage input;
         const auto converted = Texture::ToRGBA8(*source, input);
         if (FAILED(converted)) return false;
-        const std::string path = useCustomFolderDirectory ?
-            std::format("{}/Screenshot{}.png", photoDirectory.string(), GetIndex()) :
-            std::format("{}_{}.png", RE::GetINISetting("sScreenShotBaseName:Display")->GetString(), GetIndex());
+        const auto prefix = DestinationPrefix();
+        std::filesystem::path savedPath;
         bool saved = false;
         if (const auto [overlay, alpha] = MANAGER(PhotoMode)->GetOverlay(); overlay) {
             if (!overlay->image) return false;
@@ -157,12 +129,15 @@ namespace Screenshot
             }
             DirectX::ScratchImage blended;
             if (!Texture::AlphaBlendImage(input.GetImage(0, 0, 0), layer, blended, alpha)) return false;
-            saved = Texture::SaveToPNG(blended, path);
+            saved = Texture::SaveNewPNG(blended, prefix, index, savedPath);
         } else {
-            saved = Texture::SaveToPNG(input, path);
+            saved = Texture::SaveNewPNG(input, prefix, index, savedPath);
         }
         // Suppress vanilla capture and advance the index only after successful encoding.
-        if (saved) IncrementIndex();
+        if (saved) {
+            logger::info("Saved screenshot {}", savedPath.string());
+            IncrementIndex();
+        }
         return saved;
     }
 }

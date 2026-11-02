@@ -1,0 +1,355 @@
+{
+  "modName": "PhotoMode",
+  "displayName": "Photo Mode",
+  "minMcmVersion": 9,
+  "pages": [
+    {
+      "pageDisplayName": "General",
+      "content": [
+        {
+          "type": "section",
+          "text": "Photo Mode"
+        },
+        {
+          "type": "hotkey",
+          "id": "TogglePhotoMode",
+          "text": "Toggle Photo Mode",
+          "help": "Optional global keyboard/mouse hotkey. MCM manages modifiers and persistence; no quest script is required."
+        },
+        {
+          "type": "slider",
+          "id": "fFreeCameraTranslationSpeed:Settings",
+          "text": "Camera movement speed",
+          "help": "Applied when entering Photo Mode.",
+          "valueOptions": {
+            "sourceType": "ModSettingFloat",
+            "min": 0.1,
+            "max": 20.0,
+            "step": 0.1
+          }
+        },
+        {
+          "type": "switcher",
+          "id": "bFreezeTimeOnStart:Settings",
+          "text": "Freeze time on entry",
+          "help": "Freeze game time when entering Photo Mode.",
+          "valueOptions": {
+            "sourceType": "ModSettingBool"
+          }
+        },
+        {
+          "type": "switcher",
+          "id": "bOpenFromPauseMenu:Settings",
+          "text": "Show pause-menu entry",
+          "help": "Offer Photo Mode in the pause menu on the next opening.",
+          "valueOptions": {
+            "sourceType": "ModSettingBool"
+          }
+        },
+        {
+          "type": "switcher",
+          "id": "bCustomPhotoFolder:Screenshots",
+          "text": "Use Photos folder",
+          "help": "Save to Documents/My Games/Fallout4/Photos; otherwise use the game screenshot prefix.",
+          "valueOptions": {
+            "sourceType": "ModSettingBool"
+          }
+        },
+        {
+          "type": "switcher",
+          "id": "bAutoHideMenus:Screenshots",
+          "text": "Hide menus in screenshots",
+          "help": "Automatically hide game menus during capture.",
+          "valueOptions": {
+            "sourceType": "ModSettingBool"
+          }
+        },
+        {
+          "type": "switcher",
+          "id": "bMultiScreenshots:Screenshots",
+          "text": "Allow repeated screenshots",
+          "help": "Allow holding the photo key to capture more than one image.",
+          "valueOptions": {
+            "sourceType": "ModSettingBool"
+          }
+        },
+        {
+          "type": "dropdown",
+          "id": "iButtonScheme:Controls",
+          "text": "Controller prompts",
+          "help": "Choose controller prompt labels.",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "Automatic",
+              "Xbox",
+              "PlayStation"
+            ]
+          }
+        },
+        {
+          "type": "slider",
+          "id": "fKeyHeldDuration:Controls",
+          "text": "Hold duration (seconds)",
+          "help": "Time to hold Reset for reset-all, or the screenshot key for repeated capture.",
+          "valueOptions": {
+            "sourceType": "ModSettingFloat",
+            "min": 0.1,
+            "max": 3.0,
+            "step": 0.1
+          }
+        },
+        {
+          "type": "text",
+          "text": "Close the pause menu to apply settings. Camera speed and freeze-on-entry apply on the next Photo Mode entry."
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Keyboard / Mouse",
+      "content": [
+        {
+          "type": "text",
+          "text": "Single keys only. Escape cancels capture; Tab clears a binding. Avoid duplicate keys and movement controls."
+        },
+        {
+          "type": "keyinput",
+          "id": "sResetKey:Controls",
+          "text": "Reset / hold to reset all",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingString",
+            "allowModifierKeys": 0
+          }
+        },
+        {
+          "type": "keyinput",
+          "id": "sTakePhotoKey:Controls",
+          "text": "Take photo",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingString",
+            "allowModifierKeys": 0
+          }
+        },
+        {
+          "type": "keyinput",
+          "id": "sToggleMenusKey:Controls",
+          "text": "Toggle menus",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingString",
+            "allowModifierKeys": 0
+          }
+        },
+        {
+          "type": "keyinput",
+          "id": "sNextTabKey:Controls",
+          "text": "Next tab",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingString",
+            "allowModifierKeys": 0
+          }
+        },
+        {
+          "type": "keyinput",
+          "id": "sPreviousTabKey:Controls",
+          "text": "Previous tab",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingString",
+            "allowModifierKeys": 0
+          }
+        },
+        {
+          "type": "keyinput",
+          "id": "sFreezeTimeKey:Controls",
+          "text": "Toggle time freeze",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingString",
+            "allowModifierKeys": 0
+          }
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Controller",
+      "content": [
+        {
+          "type": "text",
+          "text": "Select buttons from the list. Avoid duplicates and buttons reserved for navigation (A / Cross and B / Circle)."
+        },
+        {
+          "type": "dropdown",
+          "id": "iResetController:Controls",
+          "text": "Reset / hold to reset all",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "Unbound",
+              "D-pad Up",
+              "D-pad Down",
+              "D-pad Left",
+              "D-pad Right",
+              "Start / Options",
+              "Back / Touchpad",
+              "Left stick press",
+              "Right stick press",
+              "LB / L1",
+              "RB / R1",
+              "A / Cross",
+              "B / Circle",
+              "X / Square",
+              "Y / Triangle",
+              "LT / L2",
+              "RT / R2"
+            ]
+          }
+        },
+        {
+          "type": "dropdown",
+          "id": "iTakePhotoController:Controls",
+          "text": "Take photo",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "Unbound",
+              "D-pad Up",
+              "D-pad Down",
+              "D-pad Left",
+              "D-pad Right",
+              "Start / Options",
+              "Back / Touchpad",
+              "Left stick press",
+              "Right stick press",
+              "LB / L1",
+              "RB / R1",
+              "A / Cross",
+              "B / Circle",
+              "X / Square",
+              "Y / Triangle",
+              "LT / L2",
+              "RT / R2"
+            ]
+          }
+        },
+        {
+          "type": "dropdown",
+          "id": "iToggleMenusController:Controls",
+          "text": "Toggle menus",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "Unbound",
+              "D-pad Up",
+              "D-pad Down",
+              "D-pad Left",
+              "D-pad Right",
+              "Start / Options",
+              "Back / Touchpad",
+              "Left stick press",
+              "Right stick press",
+              "LB / L1",
+              "RB / R1",
+              "A / Cross",
+              "B / Circle",
+              "X / Square",
+              "Y / Triangle",
+              "LT / L2",
+              "RT / R2"
+            ]
+          }
+        },
+        {
+          "type": "dropdown",
+          "id": "iNextTabController:Controls",
+          "text": "Next tab",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "Unbound",
+              "D-pad Up",
+              "D-pad Down",
+              "D-pad Left",
+              "D-pad Right",
+              "Start / Options",
+              "Back / Touchpad",
+              "Left stick press",
+              "Right stick press",
+              "LB / L1",
+              "RB / R1",
+              "A / Cross",
+              "B / Circle",
+              "X / Square",
+              "Y / Triangle",
+              "LT / L2",
+              "RT / R2"
+            ]
+          }
+        },
+        {
+          "type": "dropdown",
+          "id": "iPreviousTabController:Controls",
+          "text": "Previous tab",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "Unbound",
+              "D-pad Up",
+              "D-pad Down",
+              "D-pad Left",
+              "D-pad Right",
+              "Start / Options",
+              "Back / Touchpad",
+              "Left stick press",
+              "Right stick press",
+              "LB / L1",
+              "RB / R1",
+              "A / Cross",
+              "B / Circle",
+              "X / Square",
+              "Y / Triangle",
+              "LT / L2",
+              "RT / R2"
+            ]
+          }
+        },
+        {
+          "type": "dropdown",
+          "id": "iFreezeTimeController:Controls",
+          "text": "Toggle time freeze",
+          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "Unbound",
+              "D-pad Up",
+              "D-pad Down",
+              "D-pad Left",
+              "D-pad Right",
+              "Start / Options",
+              "Back / Touchpad",
+              "Left stick press",
+              "Right stick press",
+              "LB / L1",
+              "RB / R1",
+              "A / Cross",
+              "B / Circle",
+              "X / Square",
+              "Y / Triangle",
+              "LT / L2",
+              "RT / R2"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

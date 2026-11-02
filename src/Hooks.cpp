@@ -61,9 +61,9 @@ namespace PhotoMode
 				if (auto& movie = a_this->uiMovie) {
 					Scaleform::GFx::Value selectedEntry;
 					if (movie->GetVariable(&selectedEntry, "root1.Menu_mc.MainPanel_mc.List_mc.selectedEntry")) {
-						Scaleform::GFx::Value entryText;
+						Scaleform::GFx::Value entryMarker;
 						Scaleform::GFx::Value entryState;
-						if (auto result = selectedEntry.GetMember("text", &entryText); result && std::string(entryText.GetString()) == "$PM_Title_Menu") {
+						if (auto result = selectedEntry.GetMember("po3PhotoModeEntry", &entryMarker); result && entryMarker.GetBoolean()) {
 							if (result = selectedEntry.GetMember("disabled", &entryState); result && !entryState.GetBoolean()) {
 								MANAGER(PhotoMode)->ActivateFromPauseMenu();
 							}
@@ -85,7 +85,7 @@ namespace PhotoMode
 		{
 			func(a_this, a_event);
 
-			if (a_event->QUserEvent() == "VATS" && MANAGER(PhotoMode)->IsActive()) {
+			if (a_event->QUserEvent() == "VATS" && MANAGER(PhotoMode)->IsActive() && !PhotoMode::Manager::IsScreenArcherMenuOpen()) {
 				a_event->handled = RE::InputEvent::HANDLED_RESULT::kContinue;
 			}
 		}
@@ -133,21 +133,20 @@ namespace Screenshot
 	{
 		static void thunk(char const* a_path, RE::BSGraphics::TextureFileFormat a_format, std::uint32_t a_renderTarget)
 		{
-			bool skipVanillaScreenshot = false;
-
-			if (MANAGER(Input)->IsScreenshotQueued()) {
-				skipVanillaScreenshot = MANAGER(Screenshot)->TakeScreenshot();
-			}
-
-			if (!skipVanillaScreenshot) {
-				func(a_path, a_format, a_renderTarget);
-			}
-
-			MANAGER(Input)->OnScreenshotFinish();
-
-			if (skipVanillaScreenshot) {
-				RE::SendHUDMessage::ShowHUDMessage("$PM_ScreenshotNotif"_T, nullptr, true, false);
-			}
+            const bool queued = MANAGER(Input)->IsScreenshotQueued();
+            bool saved = false;
+            if (queued) {
+                saved = MANAGER(Screenshot)->TakeScreenshot();
+            } else {
+                func(a_path, a_format, a_renderTarget);
+            }
+            MANAGER(Input)->OnScreenshotFinish();
+            if (queued) {
+                // Never fall through to an unchecked writer after a custom save
+                // failure: it could reuse the same stale vanilla index.
+                RE::SendHUDMessage::ShowHUDMessage(saved ? "$PM_ScreenshotNotif"_T : "$PM_ScreenshotFailed"_T, nullptr, true, false);
+                if (!saved) logger::error("Photo Mode screenshot was not saved; vanilla fallback suppressed to protect existing photos");
+            }
 		}
 		static inline REL::Relocation<decltype(thunk)> func;
 	};

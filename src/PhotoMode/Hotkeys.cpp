@@ -1,4 +1,5 @@
 #include "PhotoMode/Hotkeys.h"
+#include "MCMKey.h"
 
 #include "Input.h"
 #include "PhotoMode/Manager.h"
@@ -19,6 +20,15 @@ namespace PhotoMode::Hotkeys
 	{
 		keyboard = a_ini.GetLongValue("Controls", std::format("{}Key", a_setting).c_str(), keyboard);
 		gamePad = a_ini.GetLongValue("Controls", std::format("{}GamePad", a_setting).c_str(), gamePad);
+        const auto stem = a_setting.substr(1); // iReset -> sResetKey / sResetGamePad
+        if (const auto binding = a_ini.GetValue("Controls", std::format("s{}Key", stem).c_str(), nullptr)) {
+            if (const auto parsed = PhotoMode::ParseMCMKey(binding, false)) keyboard = *parsed;
+        }
+        if (const auto binding = a_ini.GetValue("Controls", std::format("s{}GamePad", stem).c_str(), nullptr)) {
+            if (const auto parsed = PhotoMode::ParseMCMKey(binding, true)) gamePad = *parsed;
+        }
+        const auto selection = a_ini.GetLongValue("Controls", std::format("i{}Controller", stem).c_str(), -1);
+        if (const auto parsed = PhotoMode::ControllerBinding(selection)) gamePad = *parsed;
 	}
 
 	std::uint32_t Manager::Key::GetKey() const

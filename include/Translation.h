@@ -1,10 +1,13 @@
 #pragma once
+#include "EnglishTranslations.h"
+#include <map>
 
 namespace Translation
 {
 	class Manager final : public REX::TSingleton<Manager>
 	{
 	public:
+        Manager() { for (const auto& [key, value] : EnglishDefaults) translationMap.emplace(key, value); }
 		static std::string GetGameLanguage();
 
 		void BuildTranslationMap();
@@ -18,12 +21,13 @@ namespace Translation
 				return it->second;
 			}
 
-			static std::string str = "TRANSLATION FAILED";
-			return str;
+			// Retain a distinct, stable string even for unknown third-party keys.
+            return missingTranslations.try_emplace(std::string(a_key), std::string(a_key)).first->second;
 		}
 
 	private:
 		StringMap<std::string> translationMap{};
+        std::map<std::string, std::string, std::less<>> missingTranslations;
 	};
 }
 

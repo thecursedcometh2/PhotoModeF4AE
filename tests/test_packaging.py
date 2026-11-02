@@ -22,6 +22,12 @@ class Packaging(unittest.TestCase):
             with zipfile.ZipFile(tmp / 'out/PhotoModeF4-1.11.240.zip') as archive:
                 self.assertEqual(archive.read('Data/F4SE/Plugins/' + dll.name), dll.read_bytes())
                 self.assertIn('LICENSE.txt', archive.namelist())
+                for name in ('LICENSE', 'MIT LICENSE', 'EXCEPTIONS'):
+                    self.assertEqual(archive.read(name), (ROOT / name).read_bytes())
+                for name in ('config.json', 'settings.ini', 'keybinds.json'):
+                    path = 'Data/MCM/Config/PhotoMode/' + name
+                    self.assertEqual(archive.read(path), (ROOT / path).read_bytes())
+                self.assertFalse(any(name.startswith('Data/MCM/Settings/') for name in archive.namelist()))
                 self.assertIn('licenses/CommonLibF4-EXCEPTIONS.txt', archive.namelist())
                 self.assertFalse(any('ImGuiFonts' in name or name.endswith('.pdb') for name in archive.namelist()))
 

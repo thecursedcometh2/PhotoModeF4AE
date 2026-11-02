@@ -1,24 +1,10 @@
 #pragma once
+#include <cstdint>
+#include <filesystem>
+#include <mutex>
 
 namespace Screenshot
 {
-	// 48
-	struct Image
-	{
-		Image() = default;
-		Image(std::string_view a_path, std::uint32_t a_index);
-		Image(std::string& a_path);
-
-		bool operator<(const Image& a_rhs) const
-		{
-			return index < a_rhs.index;
-		}
-
-		// members
-		std::string  path{};
-		std::int32_t index{ -1 };
-	};
-	
 	class Manager final : public REX::TSingleton<Manager>
 	{
 	public:
@@ -27,7 +13,7 @@ namespace Screenshot
 
 		bool TakeScreenshot();
 
-		std::uint32_t GetIndex() const;
+		std::uint64_t GetIndex() const;
 		void          AssignHighestPossibleIndex();
 		void          IncrementIndex();
 
@@ -36,7 +22,9 @@ namespace Screenshot
 
 	private:
 		// members
-		std::int32_t index{ -1 };
+		std::uint64_t index{ 0 };
+        std::mutex screenshotMutex;
+        std::filesystem::path DestinationPrefix() const;
 
 		bool allowMultiScreenshots{ true };
 		bool autoHideMenus{ true };

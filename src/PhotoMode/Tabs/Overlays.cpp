@@ -1,4 +1,5 @@
 #include "PhotoMode/Tabs/Overlays.h"
+#include "OverlayFiles.h"
 
 #include "ImGui/Widgets.h"
 
@@ -6,59 +7,34 @@ namespace PhotoMode
 {
 	void Overlays::LoadOverlays()
 	{
-		const std::filesystem::path overlaysPath(R"(Data\Interface\PhotoMode\Overlays)");
-
-		std::error_code ec;
-		if (!std::filesystem::exists(overlaysPath, ec)) {
-			return;
-		}
-
-		std::map<std::string, std::vector<std::pair<std::wstring, std::string>>> imagePaths;
-
-		std::string currentSubFolder;
-		const auto  iterator = std::filesystem::recursive_directory_iterator(overlaysPath);
-		for (const auto& entry : iterator) {
-			if (entry.exists()) {
-				if (entry.is_directory()) {
-					currentSubFolder = entry.path().filename().string();
-				} else if (entry.is_regular_file()) {
-					if (const auto& path = entry.path(); !path.empty() && path.extension() == ".png") {
-						auto fileName = path.filename().string();
-						imagePaths[currentSubFolder].push_back({ path.wstring(), fileName.erase(fileName.size() - 4) });
-					}
-				}
-			}
-		}
-
-		for (auto& [folder, files] : imagePaths) {
-			for (auto& [path, fileName] : files) {
-				overlays[folder].emplace(fileName, ImGui::Texture(path));
-			}
-		}
-
-		hasOverlays = !overlays.empty();
-
-		if (hasOverlays) {
-			for (auto& [folder, files] : overlays) {
-				for (auto& [path, overlay] : files) {
-					overlay.Load(true);
-				}
-			}
-
-			std::uint32_t index = 0;
-
-			for (auto& [folder, files] : imagePaths) {
-				folders.names.push_back(folder);
-
-				folderFiles[index].names.push_back("$NONE"_T);
-				for (auto& fileName : files | std::views::values) {
-					folderFiles[index].names.push_back(fileName);
-				}
-
-				index++;
-			}
-		}
-	}
+        RevertOverlays();
+        overlays.clear(); folders.names.clear(); folderFiles.clear(); hasOverlays = false;
+        const std::filesystem::path root("Data/Interface/PhotoMode/overlays");
+        std::error_code error;
+        const auto files = FindOverlayFiles(root, error);
+        if (error) logger::error("Overlay discovery at {} failed: {}. Original Photo Mode overlay assets must be installed separately.", std::filesystem::absolute(root).string(), error.message());
+        std::uint32_t categoryIndex = 0;
+        std::size_t loaded = 0;
+        for (const auto& [category, paths] : files) {
+            std::vector<std::string> names{ "$NONE"_T };
+            for (const auto& path : paths) {
+                const auto name = path.stem().string();
+                auto [entry, inserted] = overlays[category].try_emplace(name, path.wstring());
+                if (inserted && entry->second.Load(true)) {
+                    names.push_back(name); ++loaded;
+                } else if (inserted) {
+                    logger::error("Could not load overlay {}", path.string());
+                    overlays[category].erase(entry);
+                }
+            }
+            if (names.size() > 1) {
+                folders.names.push_back(category);
+                folderFiles[categoryIndex++].names = std::move(names);
+            }
+        }
+        hasOverlays = loaded > 0;
+        logger::info("Loaded {} overlays in {} categories from {}", loaded, folders.names.size(), std::filesystem::absolute(root).string());
+    }
 
 	void Overlays::RevertOverlays()
 	{
@@ -133,8 +109,8 @@ namespace PhotoMode
 				return ImGui::Slider("$PM_Intensity"_T, &alpha, 0.0f, 1.0f).second;
 			});
 
-			drawList->ChannelsMerge();
 		}
+        drawList->ChannelsMerge();
 	}
 
 	void Overlays::DrawOverlays()
@@ -143,7 +119,7 @@ namespace PhotoMode
 		const auto size = ImGui::GetWindowSize();
 
 		constexpr auto topLeft = ImVec2(0.0f, 0.0f);
-		const auto static bottomRight = ImVec2(size.x, size.y);
+		const auto bottomRight = ImVec2(size.x, size.y);
 
 		if (updateOverlay) {
 			updateOverlay = false;

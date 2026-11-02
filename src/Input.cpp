@@ -25,7 +25,10 @@ namespace Input
 
 	void Manager::LoadMCMSettings(const CSimpleIniA& a_ini)
 	{
-		keyHeldDuration = static_cast<float>(a_ini.GetDoubleValue("Controls", "iKeyHeldDuration", keyHeldDuration));
+		keyHeldDuration = static_cast<float>(a_ini.GetDoubleValue("Controls", "fKeyHeldDuration",
+            a_ini.GetDoubleValue("Controls", "iKeyHeldDuration", keyHeldDuration)));
+        if (!std::isfinite(keyHeldDuration)) keyHeldDuration = 0.5f;
+        keyHeldDuration = std::clamp(keyHeldDuration, 0.1f, 3.0f);
 	}
 
 	bool Manager::IsScreenshotQueued() const
@@ -496,8 +499,34 @@ namespace Input
 		}
 	}
 
+    void Manager::ReleaseVerticalMovement()
+    {
+        const auto camera = RE::PlayerCamera::GetSingleton();
+        const auto state = camera ? camera->currentState.get() : nullptr;
+        if (state && state->id == RE::CameraState::kFree) {
+            auto* free = static_cast<RE::FreeCameraState*>(state);
+            verticalInput.Release(free, free->worldZDirection);
+        } else {
+            std::int16_t unused = 0;
+            verticalInput.Release(nullptr, unused);
+        }
+    }
+
+    void Manager::SuspendForExternalMenu()
+    {
+        ReleaseVerticalMovement();
+        if (ImGui::GetCurrentContext()) {
+            ImGui::GetIO().ClearInputKeys();
+            ImGui::GetIO().ClearInputMouse();
+        }
+    }
+
 	bool Manager::ShouldHandleEvent(const RE::InputEvent*)
 	{
+        if (PhotoMode::Manager::IsScreenArcherMenuOpen()) {
+            SuspendForExternalMenu();
+            return false;
+        }
 		if (const auto photoMode = MANAGER(PhotoMode); photoMode->IsActive()) {
 			if (!photoMode->ShouldBlockInput() && RE::Main::GetSingleton()->gameActive) {
 				return true;
@@ -522,7 +551,11 @@ namespace Input
 	}
 
 	void Manager::OnButtonEvent(const RE::ButtonEvent* a_event)
-	{
+    {
+        if (PhotoMode::Manager::IsScreenArcherMenuOpen()) {
+            SuspendForExternalMenu();
+            return;
+        }
 		const auto device = a_event->device.get();
 
 		if (!SetInputDevice(device)) {
@@ -546,14 +579,15 @@ namespace Input
 					return key;
 				};
 
-				static auto mouseUp = getKey("WorldZUp", RE::INPUT_DEVICE::kMouse);
-				static auto mouseDown = getKey("WorldZDown", RE::INPUT_DEVICE::kMouse);
-				static auto gamepadUp = getKey("WorldZUp", RE::INPUT_DEVICE::kGamepad);
-				static auto gamepadDown = getKey("WorldZDown", RE::INPUT_DEVICE::kGamepad);
+				const auto mouseUp = getKey("WorldZUp", RE::INPUT_DEVICE::kMouse);
+				const auto mouseDown = getKey("WorldZDown", RE::INPUT_DEVICE::kMouse);
+				const auto gamepadUp = getKey("WorldZUp", RE::INPUT_DEVICE::kGamepad);
+				const auto gamepadDown = getKey("WorldZDown", RE::INPUT_DEVICE::kGamepad);
 
 				if (hotKey == mouseUp || hotKey == gamepadUp) {  // LeftButton
 					bool released = !(a_event->value != 0.0 || a_event->heldDownSecs < 0.0);
-					freeCameraState->worldZDirection = static_cast<std::uint16_t>(!released);
+					freeCameraState->worldZDirection = static_cast<std::int16_t>(!released);
+                    verticalInput.Record(freeCameraState, freeCameraState->worldZDirection);
 					return;
 				} else if (hotKey == mouseDown || hotKey == gamepadDown) {  // RightButton
 					if (a_event->value == 0.0 && a_event->heldDownSecs >= 0.0) {
@@ -561,6 +595,7 @@ namespace Input
 					} else {
 						freeCameraState->worldZDirection = -1;
 					}
+                    verticalInput.Record(freeCameraState, freeCameraState->worldZDirection);
 					return;
 				}
 			}

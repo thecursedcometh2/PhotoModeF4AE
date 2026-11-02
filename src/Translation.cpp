@@ -9,12 +9,15 @@ namespace Translation
 
 	void Manager::BuildTranslationMap()
 	{
-		std::filesystem::path path{ std::format(R"(Data\Interface\Translations\PhotoMode_{}.txt)", GetGameLanguage()) };
-
-		if (!LoadTranslation(path)) {
-			logger::info("Failed to load translation file in {}, loading default EN file...", path.string());
-			LoadTranslation(R"(Data\Interface\Translations\PhotoMode_EN.txt)"sv);
-		}
+        const std::filesystem::path english(R"(Data\Interface\Translations\PhotoMode_EN.txt)");
+        if (!LoadTranslation(english)) {
+            logger::info("Translation file {} unavailable; using built-in English defaults", english.string());
+        }
+        const auto language = GetGameLanguage();
+        if (language != "EN") {
+            const auto localized = std::filesystem::path(std::format(R"(Data\Interface\Translations\PhotoMode_{}.txt)", language));
+            if (!LoadTranslation(localized)) logger::info("Translation file {} unavailable; keeping English defaults", localized.string());
+        }
 
 		AddGameTranslationStrings();
 	}
@@ -45,6 +48,7 @@ namespace Translation
 		std::wstring line, key, value;
 
 		while (std::getline(filestream, line)) {
+            key.clear(); value.clear();
 			std::wstringstream ss(line);
 			ss >> key;
 			// remove leading whitespace
@@ -56,7 +60,7 @@ namespace Translation
 			const auto utfKey = stl::utf16_to_utf8(key);
             const auto utfValue = stl::utf16_to_utf8(value);
             if (utfKey && utfValue && !utfKey->empty()) {
-                translationMap.emplace(*utfKey, *utfValue);
+                if (!utfValue->empty()) translationMap.insert_or_assign(*utfKey, *utfValue);
             }
 		}
 
@@ -77,7 +81,7 @@ namespace Translation
         auto FetchTranslation = [this](RE::BSScaleformTranslator* a_trns, const wchar_t* a_key) {
 			auto it = a_trns->translator.translationMap.find(a_key);
 			if (it != a_trns->translator.translationMap.end()) {
-				translationMap.emplace(*stl::utf16_to_utf8(a_key), *stl::utf16_to_utf8(it->second.data()));
+				translationMap.insert_or_assign(*stl::utf16_to_utf8(a_key), *stl::utf16_to_utf8(it->second.data()));
 			}
 		};
 

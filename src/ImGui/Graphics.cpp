@@ -1,4 +1,5 @@
 #include "ImGui/Graphics.h"
+#include "OverlayImage.h"
 
 #include "ImGui/Renderer.h"
 
@@ -28,7 +29,7 @@ namespace ImGui
 		bool result = false;
 
 		image = std::make_shared<DirectX::ScratchImage>();
-		HRESULT hr = DirectX::LoadFromWICFile(path.c_str(), DirectX::WIC_FLAGS_IGNORE_SRGB, nullptr, *image);
+		HRESULT hr = PhotoMode::LoadOverlayImage(path, *image);
 
 		if (SUCCEEDED(hr)) {
 			if (auto renderer = RE::BSGraphics::GetRendererData()) {
@@ -66,6 +67,7 @@ namespace ImGui
 			}
 		}
 
+        if (!result) logger::error("Overlay texture {} failed: HRESULT {}", stl::utf16_to_utf8(path).value_or("<invalid path>"), static_cast<unsigned long>(hr));
 		return result;
 	}
 }
