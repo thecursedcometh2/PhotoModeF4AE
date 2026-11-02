@@ -134,16 +134,36 @@ remain authoritative. No new counter default is registered with MCM.
 The tester reports that MCM/SAM integration works, but roll has no visible effect
 immediately after startup while the numeric value changes. This supersedes the
 earlier partial roll observation; the cause has not been reproduced here.
-The roll path now applies at PlayerCamera::Update instead of the virtual rotation
-getter. Portable tests exercise its real matrix/ownership policy for +/-90,
-forward-direction preservation, frozen updates without drift, external baseline
-restoration and newer-writer protection. No in-game result is claimed.
+The 2.1.4 candidate moved application to PlayerCamera::Update and passed math and
+build checks, but the user's subsequent zero-call log shows that callback was not
+reached. Its scene overlay and SAM roll suspension have been superseded by 2.1.5.
 
-Retest from a fresh game start: set roll to -90, +90 and zero; wait while frozen;
-move/look; reset the tab/all; exit into gameplay and reenter; repeat with pre-existing
-TFC. Confirm screenshot orientation too. Set nonzero roll, open SAM, change its
-position/rotation/roll/FOV, close it and repeat. Photo Mode roll must be absent while
-SAM owns the camera, its LMB/RMB guard must still work, and no roll may leak into
-normal gameplay. Check the log for version 2.1.4, `View roll changed` and
-`View roll applied through PlayerCamera::Update`. The counters distinguish accepted
-slider input from update-hook execution if visible rotation still fails.
+## Direct-entry roll follow-up (2.1.5)
+
+The tester's `camera updates=0, roll applications=0` confirms that 2.1.4's camera
+update callback was never reached. Its compilation/math success did not fix the
+runtime problem. This version replaces it with a decoded GetRotation entry hook,
+checked against the upstream ID/vtable, to intercept direct as well as virtual calls.
+A new Windows executable tests real MinHook entry detours (not just quaternion math)
+for both call types, original trampoline, repeated calls without accumulation,
+changed original rotation, zero setting, inactive output and hook removal.
+
+**In-game checks remain pending:**
+
+1. Confirm version 2.1.5 and `View roll entry hook installed` in the log. An explicit
+   ID/vtable mismatch or decoder failure requires investigation, not guessed offsets.
+2. From fresh startup, change roll to +30, -30, +90, -90 and zero. Confirm visible
+   rotation and screenshots. The log should report a nonzero rotation-call count
+   and `View roll applied through FreeCameraState::GetRotation entry hook`.
+3. Keep a nonzero roll, move/look and wait frozen. It must remain stable without drift.
+4. Open SAM: the selected roll and its visible effect must remain. Change SAM
+   position, yaw, pitch and FOV; click LMB/RMB controls repeatedly. SAM works and
+   Photo Mode does not move vertically or consume its clicks. Close/reopen SAM:
+   the Photo Mode roll setting must not reset or disappear.
+5. Exit Photo Mode, including with pre-existing TFC: Photo Mode's roll contribution
+   disappears, gameplay rotation remains correct, and reentering starts at zero.
+   Explicit camera/tab/all reset is also allowed to return the setting to zero.
+
+If the entry hook is installed but rotation calls still remain zero, the selected
+function is bypassed too: inspecting the 1.11.240 executable or a runtime call trace
+is required. Do not label an uncalled hook a successful runtime fix.

@@ -15,7 +15,7 @@ No new relocation IDs or instruction offsets have been guessed.
 
 | Hook/location | Address/slot and expected signature | Purpose, rationale, verification |
 | --- | --- | --- |
-| Camera rotation, Hooks.cpp | PlayerCamera VTABLE[0], slot 0x03 inherited TESCamera::Update; void(PlayerCamera*) | Removes previous roll overlay, calls original update, applies local-Y matrix roll to cameraRoot for active free camera with SAM closed, then propagates through NiAVObject::Update. Slot/signature follow pinned TESCamera.h; scene node/propagation APIs follow NiAVObject.h/.cpp. No instruction offsets. Runtime dispatch and visible effect require game verification. |
+| Camera rotation, Hooks.cpp | REL::ID(2248281), function entry; void(const FreeCameraState*, NiQuaternion&) | Original upstream names this GetRotation. Installation requires equality with FreeCameraState VTABLE[0], slot 0x0C from TESCameraState.h; MinHook decodes/relocates full entry instructions, failing safely if unsupported. Original result is post-multiplied by local-Y roll only for the active player's free camera, including while SAM is open. No instruction offset. Direct/virtual fixture checks run in Windows CI; actual game target/dispatch still requires game verification. |
 | DOF_IsActive | ImageSpaceEffectDepthOfField VTABLE[0], 0x08; bool(ImageSpaceEffectDepthOfField*) | Suppresses vanilla DOF during Photo Mode. Pinned ImageSpaceEffect.h declares IsActive at 08. Runtime dispatch/layout unverified. |
 | Bokeh_IsActive | ImageSpaceEffectBokehDepthOfField VTABLE[0], 0x08; bool(ImageSpaceEffectDepthOfField*) | Enables controlled DOF; same base method as above. Runtime unverified. |
 | Pause-menu handler | PauseMenu VTABLE[0], 0x01; void(PauseMenu*, const Scaleform::GFx::FunctionHandler::Params&) | Retains upstream callback and userData=16 test and selectedEntry marker/disabled checks (display text uses the plugin translation map). SWFToCodeFunctionHandler.h declares Call at 01 in the primary menu vtable. Userdata and SWF paths still require target verification. |
@@ -34,32 +34,37 @@ scanning was added. The unused branch helper now uses write_jmp<5>.
 
 ## Camera analysis
 
-Original roll reached a matrix conversion only through a CALL patched at +0x1B.
-The first migration replaced that with a FreeCameraState GetRotation vtable hook.
-The tester now reports that roll fails immediately with slider numbers changing,
-after confirming MCM/SAM integration works. The camera hook and roll math did not
-change in that integration; this does not establish the cause of the regression.
-A virtual getter can be bypassed by direct calls or replacement camera code. No
-matching executable or runtime trace is available to prove which path occurs.
+Original roll reached a matrix conversion through a CALL at
+REL::ID(2248281)+0x1B in the authoritative upstream Hooks.cpp. The first migration
+replaced that with a virtual GetRotation hook. Version 2.1.4 tried a PlayerCamera
+Update vtable hook and a scene overlay. The tester reports a changing roll value
+with `camera updates=0, roll applications=0`. This establishes that the installed
+Update vtable hook is not called in that installation; it does not establish
+whether the getter is inlined, called directly, or replaced by another camera mod.
+Both unsuccessful virtual-hook approaches have now been removed.
 
-Version 2.1.4 instead hooks the public PlayerCamera update boundary. After the
-original update, it post-multiplies cameraRoot's local rotation by local-Y roll
-and propagates the transform to its child camera with CommonLib's NiAVObject::Update.
-The old getter hook is removed so roll cannot be applied twice. A retained NiPointer
-keeps the owned root alive; restoration changes only the same node if its current
-rotation still matches Photo Mode's last output. Restoration runs before each camera update; reset/exit and SAM transitions suppress
-reapplication on the next update. All scene writes stay in that callback, not in
-UI/menu handlers. Thus a frozen updater cannot accumulate roll,
-a newer writer wins, and another mod's baseline rotation is retained. No stored
-FreeCameraState angles, position or scale are edited. Roll is skipped while SAM is
-open, leaving its own camera controls active. The original LMB/RMB guard is retained.
+Version 2.1.5 detours the GetRotation entry itself, allowing direct calls to reach
+the hook. Before installation, the existing upstream ID must equal the declared
+getter vtable entry; a mismatch logs both RVAs and leaves the target unpatched,
+requiring binary analysis instead of guessing. MinHook v1.3.4 dynamically decodes
+and relocates instructions into its original trampoline. No prologue length is
+assumed, and hook/decoder failures log an explicit status. This check is a safety
+constraint, not proof of the target's runtime ABI. Binary/game confirmation remains
+necessary, especially if another mod has replaced the entry or inlined the getter.
 
-Portable tests cover +/-90, unchanged forward direction, 1000 frozen updates,
-pre-existing rotation restoration, reset/repeated release and later writers.
-The log records the first slider change's value/update/application counts and the
-first successful application; version metadata is 2.1.4. Compilation and math tests
-do not verify camera scene propagation, hook dispatch, axis/sign or other camera
-mods. The tester must verify these, reset/exit and SAM transitions in game.
+The callback calls the original exactly once and composes local-Y roll on its
+returned quaternion for the current free camera while Photo Mode is active.
+It deliberately does NOT test whether SAM is open: the selected roll and visible
+contribution must remain while SAM owns input. Exiting Photo Mode makes the callback
+return the original result; explicit resets zero the stored setting. Stored camera
+angles and scene matrices are never modified. The prior scene-overlay ownership
+code is removed, avoiding accumulation and scene-graph restoration side effects.
+
+Logs record installation success/failure, first application, and slider changes
+with entry-hook status, rotation calls and applications. Native Windows fixtures
+exercise the actual production MinHook wrapper with direct and virtual calls,
+trampoline return, 1000 frames, changed baseline, zero/exit and removal; portable
+quaternion tests cover composition. Those are not Fallout4.exe runtime tests.
 
 ## Capture and compositing analysis
 
