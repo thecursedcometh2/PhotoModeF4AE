@@ -698,7 +698,7 @@ namespace PhotoMode
 	EventResult Manager::ProcessEvent(const RE::MenuOpenCloseEvent& a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*)
 	{
         if (a_event.menuName == "ScreenArcherMenu") {
-            MANAGER(Input)->SuspendForExternalMenu();
+                MANAGER(Input)->SuspendForExternalMenu();
         }
 		if (a_event.menuName == RE::Console::MENU_NAME) {
 			blockInput = a_event.opening;

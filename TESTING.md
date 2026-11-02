@@ -128,3 +128,22 @@ Screenshot counters are not written to MCM: its `i*` values use signed 32-bit
 `std::stoi`, whereas filenames can have 64-bit suffixes. Existing counter hints
 are read without lowering the live counter; filename scanning/exclusive creation
 remain authoritative. No new counter default is registered with MCM.
+
+## View roll regression follow-up (2.1.4)
+
+The tester reports that MCM/SAM integration works, but roll has no visible effect
+immediately after startup while the numeric value changes. This supersedes the
+earlier partial roll observation; the cause has not been reproduced here.
+The roll path now applies at PlayerCamera::Update instead of the virtual rotation
+getter. Portable tests exercise its real matrix/ownership policy for +/-90,
+forward-direction preservation, frozen updates without drift, external baseline
+restoration and newer-writer protection. No in-game result is claimed.
+
+Retest from a fresh game start: set roll to -90, +90 and zero; wait while frozen;
+move/look; reset the tab/all; exit into gameplay and reenter; repeat with pre-existing
+TFC. Confirm screenshot orientation too. Set nonzero roll, open SAM, change its
+position/rotation/roll/FOV, close it and repeat. Photo Mode roll must be absent while
+SAM owns the camera, its LMB/RMB guard must still work, and no roll may leak into
+normal gameplay. Check the log for version 2.1.4, `View roll changed` and
+`View roll applied through PlayerCamera::Update`. The counters distinguish accepted
+slider input from update-hook execution if visible rotation still fails.

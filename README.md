@@ -103,3 +103,8 @@ This was updated using Codex 6.1 Sol.
 
 ## License
 powerof3's Photo Mode is distributed under the MIT license. libxse's CommonLibF4 is distributed under GPL-3.0 with a Modding Exception. This mod is distributed under GPL-3.0 with a modding exception. See [MIT LICENSE](https://github.com/thecursedcometh2/PhotoModeF4AE/blob/master/MIT%20LICENSE), [LICENSE](https://github.com/thecursedcometh2/PhotoModeF4AE/blob/master/LICENSE), and [EXCEPTIONS](https://github.com/thecursedcometh2/PhotoModeF4AE/blob/master/EXCEPTIONS).
+
+Version 2.1.4 moves view roll from the virtual rotation getter to the camera update
+path, restores its rotation on reset/exit and SAM transitions, and logs roll-path
+diagnostics. The earlier getter path was reported ineffective despite changing
+slider values. This replacement still needs in-game confirmation; see TESTING.md.

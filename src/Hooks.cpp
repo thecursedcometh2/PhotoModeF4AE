@@ -1,5 +1,6 @@
 #include "Hooks.h"
-#include "CameraMath.h"
+#include "CameraRoll.h"
+#include <atomic>
 
 #include "Input.h"
 #include "PhotoMode/Hotkeys.h"
@@ -8,22 +9,69 @@
 
 namespace PhotoMode
 {
-    // Intercept the public camera-state rotation result rather than a call
-    // instruction inside GetRotation. Slot 0x0C is declared in TESCameraState.
-    struct FreeCameraGetRotation
+    namespace
     {
-        static void thunk(const RE::FreeCameraState* state, RE::NiQuaternion& rotation)
+        RE::NiPointer<RE::NiNode> rolledRoot;
+        CameraMath::RollOverlay rollOverlay;
+        std::atomic<std::uint64_t> cameraUpdates{}, rollApplications{};
+
+        CameraMath::Rotation ReadRotation(const RE::NiMatrix3& rotation)
         {
-            func(state, rotation);
-            if (!MANAGER(PhotoMode)->IsActive()) return;
-            const float roll = MANAGER(PhotoMode)->GetViewRoll(0.0f);
-            if (roll == 0.0f) return;
-            const auto result = CameraMath::ApplyLocalRoll(
-                {rotation.w, rotation.x, rotation.y, rotation.z}, roll);
-            rotation = {result.w, result.x, result.y, result.z};
+            CameraMath::Rotation result{};
+            for (std::size_t row = 0; row < 3; ++row)
+                for (std::size_t col = 0; col < 3; ++col) result[row][col] = rotation[row][col];
+            return result;
+        }
+
+        void WriteRotation(RE::NiNode& root, const CameraMath::Rotation& rotation)
+        {
+            auto local = root.GetLocalRotate();
+            for (std::size_t row = 0; row < 3; ++row)
+                for (std::size_t col = 0; col < 3; ++col) local[row][col] = rotation[row][col];
+            root.SetLocalRotate(local);
+            // Propagate to the child NiCamera and its view transform. Preserve
+            // translation/scale and do not edit FreeCameraState pitch/yaw.
+            RE::NiUpdateData data{};
+            root.Update(data);
+        }
+    }
+
+    static void RestoreViewRoll()
+    {
+        if (!rolledRoot) return;
+        auto rotation = ReadRotation(rolledRoot->GetLocalRotate());
+        if (rollOverlay.Release(rolledRoot.get(), rotation)) WriteRotation(*rolledRoot, rotation);
+        rolledRoot.reset();
+    }
+
+    void LogViewRollStatus(float degrees)
+    {
+        logger::info("View roll changed to {} degrees; camera updates={}, roll applications={}",
+            degrees, cameraUpdates.load(), rollApplications.load());
+    }
+
+    // Use the public TESCamera update boundary. A GetRotation vtable hook can
+    // be bypassed by direct calls or another camera implementation.
+    struct PlayerCameraUpdate
+    {
+        static void thunk(RE::PlayerCamera* camera)
+        {
+            ++cameraUpdates;
+            RestoreViewRoll();
+            func(camera);
+            const auto mode = MANAGER(PhotoMode);
+            if (!mode->IsActive() || mode->IsScreenArcherMenuOpen() ||
+                !camera->currentState || camera->currentState->id != RE::CameraState::kFree ||
+                !camera->cameraRoot) return;
+            const float roll = mode->GetViewRoll(0.0f);
+            if (!std::isfinite(roll) || roll == 0.0f) return;
+            rolledRoot = camera->cameraRoot;
+            const auto rotation = rollOverlay.Apply(rolledRoot.get(), ReadRotation(rolledRoot->GetLocalRotate()), roll);
+            WriteRotation(*rolledRoot, rotation);
+            if (++rollApplications == 1) logger::info("View roll applied through PlayerCamera::Update");
         }
         static inline REL::Relocation<decltype(thunk)> func;
-        static inline constexpr std::size_t idx = 0x0C;
+        static inline constexpr std::size_t idx = 0x03; // TESCamera::Update, pinned header
     };
 
 	struct DOF_IsActive
@@ -111,7 +159,7 @@ namespace PhotoMode
 
 	void InstallHooks()
 	{
-		stl::write_vfunc<RE::FreeCameraState, FreeCameraGetRotation>();
+		stl::write_vfunc<RE::PlayerCamera, PlayerCameraUpdate>();
 
 		stl::write_vfunc<RE::ImageSpaceEffectBokehDepthOfField, Bokeh_IsActive>();
 		stl::write_vfunc<RE::ImageSpaceEffectDepthOfField, DOF_IsActive>();
