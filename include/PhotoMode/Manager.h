@@ -19,6 +19,7 @@ namespace PhotoMode
 		void        LoadMCMSettings(const CSimpleIniA& a_ini);
 
 		static bool        IsValid();
+        static bool IsScreenArcherMenuOpen();
 		bool               ShouldBlockInput() const;
 		[[nodiscard]] bool IsActive() const;
 		void               Activate();

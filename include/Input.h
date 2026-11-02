@@ -1,4 +1,5 @@
 #pragma once
+#include "PhotoModeInputPolicy.h"
 
 namespace Input
 {
@@ -26,6 +27,8 @@ namespace Input
 		bool IsScreenshotQueued() const;
 		void QueueScreenshot(bool a_forceQueue);
 		void OnScreenshotFinish();
+        void SuspendForExternalMenu();
+        void ReleaseVerticalMovement();
 
 	private:
 		bool SetInputDevice(RE::INPUT_DEVICE a_device);
@@ -45,6 +48,7 @@ namespace Input
 		void OnButtonEvent(const RE::ButtonEvent* a_event) override;          // 08
 
 		// members
+		PhotoMode::VerticalInputOwner verticalInput;
 		DEVICE           inputDevice{ DEVICE::kNone };
 		DEVICE           lastInputDevice{ DEVICE::kNone };
 		bool             screenshotQueued{ false };

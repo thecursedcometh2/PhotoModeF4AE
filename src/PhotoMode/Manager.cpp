@@ -19,6 +19,8 @@ namespace PhotoMode
 	void Manager::LoadMCMSettings(const CSimpleIniA& a_ini)
 	{
 		freeCameraSpeed = a_ini.GetDoubleValue("Settings", "fFreeCameraTranslationSpeed", freeCameraSpeed);
+        if (!std::isfinite(freeCameraSpeed)) freeCameraSpeed = 4.0f;
+        freeCameraSpeed = std::clamp(freeCameraSpeed, 0.1f, 20.0f);
 		freezeTimeOnStart = a_ini.GetBoolValue("Settings", "bFreezeTimeOnStart", freezeTimeOnStart);
 		openFromPauseMenu = a_ini.GetBoolValue("Settings", "bOpenFromPauseMenu", openFromPauseMenu);
 	}
@@ -47,8 +49,14 @@ namespace PhotoMode
 
 	bool Manager::ShouldBlockInput() const
 	{
-		return blockInput;
+		return blockInput || IsScreenArcherMenuOpen();
 	}
+
+    bool Manager::IsScreenArcherMenuOpen()
+    {
+        const auto ui = RE::UI::GetSingleton();
+        return ui && ui->GetMenuOpen("ScreenArcherMenu");
+    }
 
 	bool Manager::IsActive() const
 	{
@@ -77,6 +85,7 @@ namespace PhotoMode
 
 	void Manager::Activate()
 	{
+        Settings::GetSingleton()->LoadMCMSettings();
 		cameraTab.GetOriginalState();
 		timeTab.GetOriginalState();
 
@@ -157,7 +166,17 @@ namespace PhotoMode
 	}
 
 	bool Manager::OnFrameUpdate()
-	{
+    {
+        // SAM uses its own input context. Suspend our UI/input without ending
+        // Photo Mode, restoring camera state, or disabling SAM camera controls.
+        if (IsScreenArcherMenuOpen()) {
+            MANAGER(Input)->SuspendForExternalMenu();
+            if (allowTextInput) {
+                RE::ControlMap::GetSingleton()->SetTextEntryMode(false);
+                allowTextInput = false;
+            }
+            return false;
+        }
 		if (!IsValid()) {
 			Deactivate();
 			return false;
@@ -181,6 +200,7 @@ namespace PhotoMode
 
 	void Manager::Deactivate()
 	{
+        MANAGER(Input)->ReleaseVerticalMovement();
 		Revert(true);
 
 		//reset characters
@@ -657,7 +677,8 @@ namespace PhotoMode
 					if (modMenuIndex) {
 						Scaleform::GFx::Value entry;
 						movie->CreateObject(&entry);
-						entry.SetMember("text", "$PM_Title_Menu");
+						entry.SetMember("text", "$PM_Title_Menu"_T);
+                        entry.SetMember("po3PhotoModeEntry", true);
 						entry.SetMember("disabled", RE::UI::GetSingleton()->GetMenuOpen<RE::PipboyMenu>());
 						entry.SetMember("index", 14.0);
 						entry.SetMember("clipIndex", (std::uint32_t)4);
@@ -676,15 +697,19 @@ namespace PhotoMode
 
 	EventResult Manager::ProcessEvent(const RE::MenuOpenCloseEvent& a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*)
 	{
+        if (a_event.menuName == "ScreenArcherMenu") {
+            MANAGER(Input)->SuspendForExternalMenu();
+        }
 		if (a_event.menuName == RE::Console::MENU_NAME) {
 			blockInput = a_event.opening;
 		} else if (a_event.menuName == "PauseMenu") {
 			if (a_event.opening) {
 				if (openFromPauseMenu) {
-					openFromPauseMenu = SetupPauseMenu();
+					(void)SetupPauseMenu();
 				}
 			} else {
-				Settings::GetSingleton()->LoadMCMSettings();
+                Settings::GetSingleton()->LoadMCMSettings();
+                logger::info("Reloaded Photo Mode MCM settings after closing PauseMenu");
 			}
 		}
 

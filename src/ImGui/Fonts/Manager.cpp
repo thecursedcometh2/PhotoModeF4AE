@@ -1,4 +1,5 @@
 #include "ImGui/Fonts/Manager.h"
+#include "FontAssetPath.h"
 
 #include "ImGui/Fonts/IconsFontAwesome6.h"
 
@@ -13,7 +14,6 @@ namespace Font
 	void Font::LoadSettings(const CSimpleIniA& a_ini, const char* a_section)
 	{
 		name = a_ini.GetValue(a_section, "sFont", name.c_str());
-		name = R"(Data\Interface\ImGuiFonts\)" + name;
 
 		const auto resolutionScale = ImGui::Renderer::GetResolutionScale();
 
@@ -30,9 +30,10 @@ namespace Font
 
 		const auto& io = ImGui::GetIO();
 		config.Flags |= ImFontFlags_NoLoadError;
-        font = io.Fonts->AddFontFromFileTTF(name.c_str(), 0.0f, &config);
+        const auto asset = AssetPath(name).string();
+        font = io.Fonts->AddFontFromFileTTF(asset.c_str(), 0.0f, &config);
         if (!font) {
-            logger::error("Missing external ImGui Fonts asset: {}. Install Nexus mod 88107.", name);
+            logger::error("Could not load font asset {} (configured as {}). Check the installed ImGui Fonts files or fonts.ini.", asset, name);
             font = io.Fonts->AddFontDefault();
         }
 		if (a_loadIcons) {

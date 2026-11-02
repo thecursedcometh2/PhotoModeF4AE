@@ -51,3 +51,21 @@ The original vcpkg manifest also listed rsm-mmio and xbyak. Photo Mode has no
 rsm-mmio API uses or generated Xbyak code; the unused legacy Xbyak include was
 removed. Hooks use CommonLib Shared's REL trampoline, initialized through F4SE,
 so neither unused package is a requirement of the migrated plugin.
+
+## Optional integrations inspected
+
+These are source references, not linked dependencies or bundled components:
+
+| Integration | Inspected revision | Contract used |
+| --- | --- | --- |
+| reg2k/f4mcm | e2b187a82e87e63571f6f59ec3c29d505e02779e | Config/settings/keybinds JSON, typed INI settings, RunConsoleCommand action |
+| maximusmaxy/ScreenArcherMenu | 97ce9c286b2ffcd91eed9d51f847631ff51664d6 | Native menu name `ScreenArcherMenu`; independent input and direct free-camera controls |
+
+MCM's SettingStore.cpp, MCMKeybinds.cpp and MCMInput.cpp were inspected, along
+with the shipped `dist/Data/Interface/MCM.swf` control contract (script inspection
+using JPEXS 26.4.0). FO4 control types include switcher, slider, dropdown, keyinput
+and hotkey; Skyrim MCM Helper types are not interchangeable. New JSON/INI files
+are authored here. No MCM or SAM source, Flash assets, or runtime offsets are copied.
+The inspected MCM backend targets 1.10.984; its revision is **not** proof of
+1.11.240 compatibility. Install independently maintained compatible MCM/SAM builds.
+Their own runtime support cannot be established by building Photo Mode.

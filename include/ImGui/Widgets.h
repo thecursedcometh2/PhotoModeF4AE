@@ -1,4 +1,5 @@
 #pragma once
+#include "WidgetID.h"
 
 #include "Styles.h"
 #include "Util.h"
@@ -19,6 +20,7 @@ namespace ImGui
 	template <class E>
 	HoveredResult EnumSlider(const char* label, E* index, const std::ranges::common_range auto& a_enum, bool a_translate = true)
 	{
+		const ScopedWidgetID widgetID(index);
 		bool value_changed = false;
 
 		std::size_t uIndex;
@@ -91,6 +93,7 @@ namespace ImGui
 	template <class T>
 	HoveredResult Slider(const char* label, T* v, T v_min, T v_max, const char* format = nullptr, ImGuiSliderFlags flags = ImGuiSliderFlags_AlwaysClamp)
 	{
+		const ScopedWidgetID widgetID(v);
 		LeftAlignedText(label);
 
 		PushStyleColor(ImGuiCol_FrameBg, GetUserStyleColorU32(USER_STYLE::kFrameBG_Widget));

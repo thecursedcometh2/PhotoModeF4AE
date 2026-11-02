@@ -18,10 +18,10 @@ No new relocation IDs or instruction offsets have been guessed.
 | Camera rotation, Hooks.cpp | FreeCameraState VTABLE[0], slot 0x0C; void(const FreeCameraState*, NiQuaternion&) | Calls original then post-multiplies local-Y roll. Slot/signature follow pinned TESCameraState.h. Removes original REL::ID(2248281)+0x1B internal CALL, whose presence on 1.11.240 was unverified. Quaternion math tested; slot dispatch, axis/sign and visible effect require binary/game verification. |
 | DOF_IsActive | ImageSpaceEffectDepthOfField VTABLE[0], 0x08; bool(ImageSpaceEffectDepthOfField*) | Suppresses vanilla DOF during Photo Mode. Pinned ImageSpaceEffect.h declares IsActive at 08. Runtime dispatch/layout unverified. |
 | Bokeh_IsActive | ImageSpaceEffectBokehDepthOfField VTABLE[0], 0x08; bool(ImageSpaceEffectDepthOfField*) | Enables controlled DOF; same base method as above. Runtime unverified. |
-| Pause-menu handler | PauseMenu VTABLE[0], 0x01; void(PauseMenu*, const Scaleform::GFx::FunctionHandler::Params&) | Retains upstream callback and userData=16 test and selectedEntry text/disabled checks. SWFToCodeFunctionHandler.h declares Call at 01 in the primary menu vtable. Userdata and SWF paths still require target verification. |
+| Pause-menu handler | PauseMenu VTABLE[0], 0x01; void(PauseMenu*, const Scaleform::GFx::FunctionHandler::Params&) | Retains upstream callback and userData=16 test and selectedEntry marker/disabled checks (display text uses the plugin translation map). SWFToCodeFunctionHandler.h declares Call at 01 in the primary menu vtable. Userdata and SWF paths still require target verification. |
 | Menu input | MenuOpenHandler VTABLE[0], 0x08; void(MenuOpenHandler*, ButtonEvent*) | Calls original and allows VATS handling in Photo Mode. BSInputEventUser.h declares OnButtonEvent(const ButtonEvent*) at 08; upstream thunk mutates handled. Pointer constness does not change ABI, but event policy needs gameplay verification. |
 | Idle editor IDs | TESIdleForm VTABLE[0], 0x3B; bool(TESIdleForm*, const char*) | Caches non-paired idles where TESDataHandler lacks an array. TESForm.h declares SetFormEditorID at 3B; target binary and form-load timing unverified. |
-| Screenshot call | REL::ID(2228913) + 0x2C6; void(const char*, BSGraphics::TextureFileFormat, uint32_t) | Retained upstream Main::Swap CALL. **Requires binary analysis before release.** Installer checks E8 opcode and fails closed if mismatched; this is not an ABI or instruction-boundary proof. Original runs when custom capture/encode fails. |
+| Screenshot call | REL::ID(2228913) + 0x2C6; void(const char*, BSGraphics::TextureFileFormat, uint32_t) | Retained upstream Main::Swap CALL. **Requires binary analysis before release.** Installer checks E8 opcode and fails closed if mismatched; this is not an ABI or instruction-boundary proof. Vanilla capture runs only for unqueued requests. Queued capture failures notify/log instead of falling through to an unchecked writer. |
 | UI rendering | HUDMenu VTABLE[0], 0x06; void(IMenu*) | Runs ImGui before original PostDisplay. IMenu.h declares PostDisplay at 06; HUD-hidden behavior and render-thread/context ownership require in-game verification. |
 | Window input | GWLP_WNDPROC, LRESULT(HWND,UINT,WPARAM,LPARAM) | Standard Win32 API hook, original procedure forwarded; clears keys on focus loss. Window lifecycle/reinitialization still needs testing. |
 | Console command | SCRIPT_FUNCTION table entry named TogglePathLine; upstream execute ABI | Replaces table entry with PhotoMode command; table layout and command coexistence require target validation. |
@@ -50,7 +50,7 @@ conversion/encoding, divided by hardware_concurrency (which may be zero), and
 ignored remainder rows. These are source-confirmed defects. New code normalizes
 capture and overlay to straight RGBA8 before byte operations, resizes either-axis
 mismatches, blends all rows with rowPitch, and flattens PNG alpha to 255 even with
-no overlay. It suppresses vanilla capture only when encoding succeeds. Bounds
+no overlay. Queued Photo Mode capture uses exclusive PNG creation and never falls through to the vanilla writer on a save failure. Bounds
 checks reject invalid render-target indices/null textures. SDR sRGB views are converted without accidentally decoding then merely retagging
 the stored RGB bytes. DirectXTex performs
 GPU readback; WIC performs PNG encoding synchronously on the original caller.
@@ -86,3 +86,34 @@ returned an empty list during this review. Nexus 88107 bugs page returned HTTP 4
 no Nexus report contents could be reviewed. User-reported roll/transparency/UI/DOF
 regressions remain reports, not reproduced gameplay failures. Source-confirmed
 bugs and portable tests above must not be represented as in-game fixes verified.
+
+## Screenshot preservation follow-up
+
+Startup scanning is no longer conditional on a successful optional INI load.
+Selected-folder filename suffixes and persisted hints use nonnegative uint64_t
+values; existing Screenshot4294967295.png is handled without signed overflow.
+The PNG is encoded in memory before CreateFileW(CREATE_NEW). Existing files cause
+a retry at the next number; no pathname is opened with truncation or replacement.
+Partial-write cleanup uses the newly owned handle rather than deleting a pathname.
+The manager serializes captures and UINT64_MAX exhaustion fails without wrapping.
+The lower-level SaveToPNG encoder is used only for caller-owned test paths;
+production captures call SaveNewPNG. See TESTING.md for restart and race tests.
+
+## Screen Archer Menu coexistence
+
+No new relocation or vtable hook. The `ScreenArcherMenu` native menu name is
+verified in SAM/constants.h at 97ce9c286b2ffcd91eed9d51f847631ff51664d6.
+Photo Mode's existing MenuOpenClose sink and frame/input paths query CommonLib
+UI::GetMenuOpen. While open, they skip Photo Mode drawing/input before the normal
+context validity check (SAM uses context 0x22, otherwise causing deactivation).
+The VATS event policy also leaves SAM events alone. SAM/camera.cpp directly
+updates FreeCameraState position/angles/FOV and is not intercepted or disabled.
+
+Photo Mode already synthesizes FreeCameraState::worldZDirection (int16) for TFC
+WorldZUp/Down. It now tracks the state pointer and last direction it wrote, and
+clears that direction once on suspension/exit only if both still match. It never
+dereferences a saved pointer; further SAM-owned changes are untouched. TFC mapping
+lookups are refreshed instead of cached indefinitely. No global handler or SAM
+input layer is toggled by this guard. Existing structure-layout assumptions are
+unchanged. Pure ownership-policy checks pass; actual SAM clicks, camera controls,
+menu ordering and game-thread behavior require the in-game matrix in TESTING.md.

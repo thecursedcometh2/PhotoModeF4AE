@@ -1,0 +1,13 @@
+{
+  "modName": "PhotoMode",
+  "keybinds": [
+    {
+      "id": "TogglePhotoMode",
+      "desc": "Toggle Photo Mode",
+      "action": {
+        "type": "RunConsoleCommand",
+        "command": "PhotoMode"
+      }
+    }
+  ]
+}
