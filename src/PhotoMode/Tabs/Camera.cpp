@@ -1,4 +1,5 @@
 #include "PhotoMode/Tabs/Camera.h"
+#include "Hooks.h"
 
 #include "ImGui/Widgets.h"
 
@@ -24,6 +25,7 @@ namespace PhotoMode
 	void Camera::GetOriginalState()
 	{
 		originalState.Get();
+        rollChangeLogged = false;
 
 		if (!fFreeCameraTranslationSpeed) {
 			fFreeCameraTranslationSpeed = RE::INISettingCollection::GetSingleton()->GetSetting("fFreeCameraTranslationSpeed:Camera");
@@ -50,6 +52,8 @@ namespace PhotoMode
 
 		// revert view roll
 		currentViewRoll = 0.0f;
+        rollChangeLogged = false;
+        ReleaseViewRoll();
 
 		// revert translation speed
 		if (a_deactivate) {
@@ -103,6 +107,10 @@ namespace PhotoMode
 			auto [selected, hovered] = ImGui::Slider("$PM_ViewRoll"_T, &currentViewRollDegrees, -90.0f, 90.0f);
 			if (selected) {
 				currentViewRoll = RE::deg_to_rad(currentViewRollDegrees);
+                if (!rollChangeLogged && currentViewRoll != 0.0f) {
+                    LogViewRollStatus(currentViewRollDegrees);
+                    rollChangeLogged = true;
+                }
 			}
 			return hovered;
 		});

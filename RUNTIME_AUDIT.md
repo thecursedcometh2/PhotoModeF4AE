@@ -15,7 +15,7 @@ No new relocation IDs or instruction offsets have been guessed.
 
 | Hook/location | Address/slot and expected signature | Purpose, rationale, verification |
 | --- | --- | --- |
-| Camera rotation, Hooks.cpp | FreeCameraState VTABLE[0], slot 0x0C; void(const FreeCameraState*, NiQuaternion&) | Calls original then post-multiplies local-Y roll. Slot/signature follow pinned TESCameraState.h. Removes original REL::ID(2248281)+0x1B internal CALL, whose presence on 1.11.240 was unverified. Quaternion math tested; slot dispatch, axis/sign and visible effect require binary/game verification. |
+| Camera rotation, Hooks.cpp | PlayerCamera VTABLE[0], slot 0x03 inherited TESCamera::Update; void(PlayerCamera*) | Removes previous roll overlay, calls original update, applies local-Y matrix roll to cameraRoot for active free camera with SAM closed, then propagates through NiAVObject::Update. Slot/signature follow pinned TESCamera.h; scene node/propagation APIs follow NiAVObject.h/.cpp. No instruction offsets. Runtime dispatch and visible effect require game verification. |
 | DOF_IsActive | ImageSpaceEffectDepthOfField VTABLE[0], 0x08; bool(ImageSpaceEffectDepthOfField*) | Suppresses vanilla DOF during Photo Mode. Pinned ImageSpaceEffect.h declares IsActive at 08. Runtime dispatch/layout unverified. |
 | Bokeh_IsActive | ImageSpaceEffectBokehDepthOfField VTABLE[0], 0x08; bool(ImageSpaceEffectDepthOfField*) | Enables controlled DOF; same base method as above. Runtime unverified. |
 | Pause-menu handler | PauseMenu VTABLE[0], 0x01; void(PauseMenu*, const Scaleform::GFx::FunctionHandler::Params&) | Retains upstream callback and userData=16 test and selectedEntry marker/disabled checks (display text uses the plugin translation map). SWFToCodeFunctionHandler.h declares Call at 01 in the primary menu vtable. Userdata and SWF paths still require target verification. |
@@ -35,13 +35,30 @@ scanning was added. The unused branch helper now uses write_jmp<5>.
 ## Camera analysis
 
 Original roll reached a matrix conversion only through a CALL patched at +0x1B.
-If newer code inlines/reorders that operation, changing the UI value cannot affect
-the returned rotation. That is a plausible failure mechanism, **not a reproduced
-root cause** without the executable. The replacement hooks the declared virtual
-GetRotation output and composes roll after the game supplies pitch/yaw. It never
-writes FreeCameraState's stored angles; inactive mode returns the original result.
-Camera::RevertState resets the roll value to zero. Math identity/inverse tests pass;
-visible roll, sign, and restoring pre-existing TFC remain pending.
+The first migration replaced that with a FreeCameraState GetRotation vtable hook.
+The tester now reports that roll fails immediately with slider numbers changing,
+after confirming MCM/SAM integration works. The camera hook and roll math did not
+change in that integration; this does not establish the cause of the regression.
+A virtual getter can be bypassed by direct calls or replacement camera code. No
+matching executable or runtime trace is available to prove which path occurs.
+
+Version 2.1.4 instead hooks the public PlayerCamera update boundary. After the
+original update, it post-multiplies cameraRoot's local rotation by local-Y roll
+and propagates the transform to its child camera with CommonLib's NiAVObject::Update.
+The old getter hook is removed so roll cannot be applied twice. A retained NiPointer
+keeps the owned root alive; restoration changes only the same node if its current
+rotation still matches Photo Mode's last output. Restore runs before each update,
+on reset/exit and on SAM transitions. Thus a frozen updater cannot accumulate roll,
+a newer writer wins, and another mod's baseline rotation is retained. No stored
+FreeCameraState angles, position or scale are edited. Roll is skipped while SAM is
+open, leaving its own camera controls active. The original LMB/RMB guard is retained.
+
+Portable tests cover +/-90, unchanged forward direction, 1000 frozen updates,
+pre-existing rotation restoration, reset/repeated release and later writers.
+The log records the first slider change's value/update/application counts and the
+first successful application; version metadata is 2.1.4. Compilation and math tests
+do not verify camera scene propagation, hook dispatch, axis/sign or other camera
+mods. The tester must verify these, reset/exit and SAM transitions in game.
 
 ## Capture and compositing analysis
 

@@ -1,4 +1,5 @@
 #include "PhotoMode/Manager.h"
+#include "Hooks.h"
 
 #include "ImGui/Fonts/Manager.h"
 #include "ImGui/Styles.h"
@@ -200,6 +201,7 @@ namespace PhotoMode
 
 	void Manager::Deactivate()
 	{
+        ReleaseViewRoll();
         MANAGER(Input)->ReleaseVerticalMovement();
 		Revert(true);
 
@@ -698,6 +700,7 @@ namespace PhotoMode
 	EventResult Manager::ProcessEvent(const RE::MenuOpenCloseEvent& a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*)
 	{
         if (a_event.menuName == "ScreenArcherMenu") {
+            ReleaseViewRoll();
             MANAGER(Input)->SuspendForExternalMenu();
         }
 		if (a_event.menuName == RE::Console::MENU_NAME) {
