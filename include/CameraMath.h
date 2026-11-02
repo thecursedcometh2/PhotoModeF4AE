@@ -4,8 +4,7 @@
 namespace CameraMath
 {
     struct Quaternion { float w, x, y, z; };
-    // Fallout's local camera forward is Y. Post-multiply the original rotation
-    // by a local-Y axis-angle rotation; never write the stored gameplay angles.
+    // Camera forward is local Y.
     inline Quaternion ApplyLocalRoll(Quaternion q, float radians)
     {
         if (!std::isfinite(radians)) return q;

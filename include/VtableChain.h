@@ -1,14 +1,25 @@
 #pragma once
-#include "CameraTrace.h"
+#include <windows.h>
+#include <cstdint>
+#include <optional>
 #include <REL/Utility.h>
 #include <atomic>
 
 namespace Hooks
 {
+    inline std::optional<std::uintptr_t> ReadPointer(std::uintptr_t address)
+    {
+        std::uintptr_t result{};
+        SIZE_T read{};
+        if (!address || !ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(address),
+                &result, sizeof(result), &read) || read != sizeof(result)) return std::nullopt;
+        return result;
+    }
+
+
     enum class ChainResult { installed, alreadyInstalled, replaced, invalid, writeFailed };
 
-    // Capture the current downstream function once. Never capture our own hook
-    // or re-chain a later wrapper: it could already delegate to us and recurse.
+    // A later wrapper may already call us; re-chaining it would recurse.
     template <class Function>
     class VtableChain
     {
@@ -19,7 +30,7 @@ namespace Hooks
 
         ChainResult Install(std::uintptr_t address, Function replacement)
         {
-            const auto current = CameraTrace::ReadPointer(address);
+            const auto current = ReadPointer(address);
             const auto next = reinterpret_cast<std::uintptr_t>(replacement);
             if (!address || address % alignof(std::uintptr_t) || !current || !*current || !next)
                 return ChainResult::invalid;
@@ -28,19 +39,18 @@ namespace Hooks
                 return *current == own ? ChainResult::alreadyInstalled : ChainResult::replaced;
             }
             if (*current == next) return ChainResult::invalid;
-            // Publish the downstream callable before making our wrapper visible.
+            // Publish before exposing the wrapper.
             original.store(reinterpret_cast<Function>(*current), std::memory_order_release);
             slot = address;
             own = next;
             const bool written = REL::WriteSafeData(slot, own);
-            if (!written || CameraTrace::ReadPointer(slot) != own) return ChainResult::writeFailed;
+            if (!written || ReadPointer(slot) != own) return ChainResult::writeFailed;
             return ChainResult::installed;
         }
 
         Function Original() const { return original.load(std::memory_order_acquire); }
-        bool OwnsSlot() const { return slot && CameraTrace::ReadPointer(slot) == own; }
+        bool OwnsSlot() const { return slot && ReadPointer(slot) == own; }
 
-        // Only for explicit cleanup (fixtures). Do not erase a newer mod's slot.
         bool Restore()
         {
             if (!OwnsSlot()) return false;

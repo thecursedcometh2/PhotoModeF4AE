@@ -42,7 +42,6 @@ extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Load(const F4SE::LoadInterface* a_f
 	if (a_f4se->RuntimeVersion() != F4SE::RUNTIME_1_11_240) {
         return false;
     }
-    // The official plugin rule generates the version export and Windows resources.
     static_assert(F4SE::RUNTIME_LATEST == F4SE::RUNTIME_1_11_240);
     F4SE::Init(a_f4se, {.logName = "po3_PhotoModeF4", .trampoline = true, .trampolineSize = 128});
 

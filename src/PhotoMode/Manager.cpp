@@ -171,8 +171,6 @@ namespace PhotoMode
 	bool Manager::OnFrameUpdate()
     {
         EnsureViewRollHook();
-        // SAM uses its own input context. Suspend our UI/input without ending
-        // Photo Mode, restoring camera state, or disabling SAM camera controls.
         if (IsScreenArcherMenuOpen()) {
             MANAGER(Input)->SuspendForExternalMenu();
             if (allowTextInput) {
@@ -214,7 +212,6 @@ namespace PhotoMode
 		// reset camera
 		if (originalcameraState != RE::CameraState::kFree) {
 			RE::PlayerCamera::GetSingleton()->ToggleFreeCameraMode(false);
-			//RE::ControlMap::GetSingleton()->PopInputContext(RE::ControlMap::InputContextID::kTFCMode);
 		}
 
 		// reset controls
@@ -236,8 +233,6 @@ namespace PhotoMode
 			}
 			sitWaitMenuOpen = false;
 		}
-
-		// VATS INI setting was never changed on entry; leave the game setting intact.
 
 		// reset variables
 		hiddenUI = false;
@@ -609,9 +604,6 @@ namespace PhotoMode
 			const auto& resetIcon = MANAGER(Hotkeys)->ResetIcon();
 			const auto& freezeTimeIcon = MANAGER(Hotkeys)->FreezeTimeIcon();
 
-			// const static auto togglePMLabel = "$EXIT"_T;
-			// const auto& togglePMIcons = MANAGER(Hotkeys)->TogglePhotoModeIcons();
-
 			// calc total elements width
 			const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -629,12 +621,6 @@ namespace PhotoMode
 			calc_width(freezeTimeIcon, freezeTimeLabel);
 			calc_width(resetIcon, resetLabel);
 
-			/*for (const auto& icon : togglePMIcons) {
-				width += icon->size.x;
-			}
-			width += style.ItemSpacing.x;
-			width += ImGui::CalcTextSize(togglePMLabel).x;*/
-
 			// align at center
 			ImGui::AlignForWidth(width, 0.0f);
 
@@ -649,7 +635,6 @@ namespace PhotoMode
 			draw_button(freezeTimeIcon, freezeTimeLabel);
 			draw_button(resetIcon, resetLabel);
 
-			// ImGui::ButtonIconWithLabel(togglePMLabel, togglePMIcons, true);
 		}
 		ImGui::End();
 	}
@@ -713,7 +698,6 @@ namespace PhotoMode
 				}
 			} else {
                 Settings::GetSingleton()->LoadMCMSettings();
-                logger::info("Reloaded Photo Mode MCM settings after closing PauseMenu");
 			}
 		}
 

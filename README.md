@@ -107,16 +107,11 @@ powerof3's Photo Mode is distributed under the MIT license. libxse's CommonLibF4
 SAM remains optional: without SAM, Photo Mode chains the vanilla game getter.
 Neither mod requires the other to be installed.
 
-Version 2.1.7 fixes the hook-order conflict identified in the live trace: SAM
-replaces the free-camera rotation getter after Photo Mode's startup hook. Photo
-Mode now chains the live getter on first activation, calls SAM's getter once,
-and adds the selected roll to its result. The original unused entry hook and
-MinHook dependency are removed. No SAM DLL offset is hardcoded.
+Version 2.1.8 is the final cleanup of the user-tested 2.1.7 roll fix. Photo Mode
+chains the live rotation getter after startup, preserving SAM's rotation and adding
+the selected Photo Mode roll. The selected roll remains applied while SAM is open;
+its mouse-input guard remains active. Exiting Photo Mode removes its contribution.
 
-The selected roll remains applied while SAM is open. SAM still owns its input,
-so clicking its menu does not trigger Photo Mode's vertical movement. Exiting
-Photo Mode removes its roll contribution while preserving SAM's rotation; explicit
-reset controls retain their original behavior. Native hook-order regression
-checks run in Windows CI. Visible roll and SAM transitions still need in-game
-confirmation with this build. Logs report the captured callback's module and
-actual rotation/application counts.
+Temporary camera tracing, per-slider diagnostics and counters have been removed.
+Normal startup and error logging remain. Windows regression checks cover both
+SAM-style replacement and vanilla getters; see TESTING.md for validation details.

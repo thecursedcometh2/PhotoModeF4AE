@@ -6,7 +6,6 @@ namespace PhotoMode
 	
 	void InstallHooks();
     void EnsureViewRollHook();
-    void LogViewRollStatus(float degrees);
 }
 
 namespace Screenshot

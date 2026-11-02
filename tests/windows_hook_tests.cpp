@@ -1,5 +1,4 @@
 #include "CameraMath.h"
-#include "CameraTrace.h"
 #include "VtableChain.h"
 #include <atomic>
 #include <iostream>
@@ -67,16 +66,8 @@ int main()
         const auto table = *reinterpret_cast<std::uintptr_t const* const*>(&camera);
         const auto slot = reinterpret_cast<std::uintptr_t>(table); // Fixture declares one virtual method.
         const auto vanilla = table[0];
-        require(CameraTrace::VtableEntry(reinterpret_cast<std::uintptr_t>(&camera), 0) == vanilla, "live fixture vtable");
-        require(!CameraTrace::ReadPointer(0) && !CameraTrace::ReadPointer(1), "invalid read");
-        require(!CameraTrace::VtableEntry(reinterpret_cast<std::uintptr_t>(&camera), SIZE_MAX), "slot overflow");
-        const auto description = CameraTrace::Describe(vanilla);
-        require(description.find(".exe+") != description.npos && description.find('\\') == description.npos &&
-            description.find('/') == description.npos, "image label must omit installation path");
-        const auto code = CameraTrace::CodeBytes(vanilla);
-        require(!code.empty() && code.size() <= 384 && code.find_first_not_of("0123456789ABCDEF") == code.npos, "bounded code read");
-        require(CameraTrace::CodeBytes(reinterpret_cast<std::uintptr_t>(&camera)).starts_with("unavailable"), "stack read rejected");
-        std::cout << "Camera trace checks passed: live vtable, invalid/overflow reads, basename-only labels, executable-only snapshots\n";
+        require(Hooks::ReadPointer(slot) == vanilla, "live fixture vtable");
+        require(!Hooks::ReadPointer(0) && !Hooks::ReadPointer(1), "invalid pointer read");
 
         // Reproduce the reported regression: SAM installs after an early Photo Mode wrapper.
         require(REL::WriteSafeData(slot, reinterpret_cast<std::uintptr_t>(&earlyPhoto)), "install early wrapper");
@@ -117,7 +108,7 @@ int main()
         dispatched(camera, out);
         require(newerCalls == 1 && same(out, CameraMath::ApplyLocalRoll(camera.base, samRoll)), "later delegation recursed or changed output");
         require(REL::WriteSafeData(slot, reinterpret_cast<std::uintptr_t>(&photoGetter)), "restore fixture ownership");
-        require(samChain.Restore() && CameraTrace::ReadPointer(slot) == reinterpret_cast<std::uintptr_t>(&samGetter), "cleanup must restore SAM, not vanilla");
+        require(samChain.Restore() && Hooks::ReadPointer(slot) == reinterpret_cast<std::uintptr_t>(&samGetter), "cleanup must restore SAM, not vanilla");
 
         // No-SAM installation: same code captures vanilla and applies exactly one contribution.
         require(REL::WriteSafeData(slot, vanilla), "reset vanilla fixture");
@@ -130,7 +121,7 @@ int main()
         photoRoll = 0;
         dispatched(camera, out);
         require(same(out, camera.base), "zero/reset restoration");
-        require(vanillaChain.Restore() && CameraTrace::ReadPointer(slot) == vanilla, "restore vanilla fixture");
+        require(vanillaChain.Restore() && Hooks::ReadPointer(slot) == vanilla, "restore vanilla fixture");
         std::cout << "Late camera chain checks passed: reproduced SAM overwrite, captured SAM getter, 1000 idempotent frames, one contribution, SAM changes, exit baseline, later-wrapper recursion protection, vanilla fallback\n";
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
