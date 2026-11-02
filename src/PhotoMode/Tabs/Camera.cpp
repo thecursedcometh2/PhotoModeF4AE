@@ -53,7 +53,6 @@ namespace PhotoMode
 		// revert view roll
 		currentViewRoll = 0.0f;
         rollChangeLogged = false;
-        ReleaseViewRoll();
 
 		// revert translation speed
 		if (a_deactivate) {

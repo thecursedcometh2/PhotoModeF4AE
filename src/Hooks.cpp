@@ -36,7 +36,7 @@ namespace PhotoMode
         }
     }
 
-    void ReleaseViewRoll()
+    static void RestoreViewRoll()
     {
         if (!rolledRoot) return;
         auto rotation = ReadRotation(rolledRoot->GetLocalRotate());
@@ -57,7 +57,7 @@ namespace PhotoMode
         static void thunk(RE::PlayerCamera* camera)
         {
             ++cameraUpdates;
-            ReleaseViewRoll();
+            RestoreViewRoll();
             func(camera);
             const auto mode = MANAGER(PhotoMode);
             if (!mode->IsActive() || mode->IsScreenArcherMenuOpen() ||

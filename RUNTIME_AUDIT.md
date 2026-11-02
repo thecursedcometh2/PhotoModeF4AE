@@ -47,8 +47,9 @@ original update, it post-multiplies cameraRoot's local rotation by local-Y roll
 and propagates the transform to its child camera with CommonLib's NiAVObject::Update.
 The old getter hook is removed so roll cannot be applied twice. A retained NiPointer
 keeps the owned root alive; restoration changes only the same node if its current
-rotation still matches Photo Mode's last output. Restore runs before each update,
-on reset/exit and on SAM transitions. Thus a frozen updater cannot accumulate roll,
+rotation still matches Photo Mode's last output. Restoration runs before each camera update; reset/exit and SAM transitions suppress
+reapplication on the next update. All scene writes stay in that callback, not in
+UI/menu handlers. Thus a frozen updater cannot accumulate roll,
 a newer writer wins, and another mod's baseline rotation is retained. No stored
 FreeCameraState angles, position or scale are edited. Roll is skipped while SAM is
 open, leaving its own camera controls active. The original LMB/RMB guard is retained.
