@@ -1,7 +1,7 @@
 #include "Hooks.h"
 #include "CameraMath.h"
 #include "CameraTrace.h"
-#include "FunctionHook.h"
+#include "VtableChain.h"
 #include <atomic>
 
 #include "Input.h"
@@ -14,8 +14,6 @@ namespace PhotoMode
     namespace
     {
         std::atomic<std::uint64_t> rotationCalls{}, rollApplications{};
-        std::atomic<bool> traceEmitted{};
-        std::string originalGetterCode;
     }
 
     struct FreeCameraRotation
@@ -23,103 +21,57 @@ namespace PhotoMode
         static void thunk(const RE::FreeCameraState* state, RE::NiQuaternion& rotation)
         {
             ++rotationCalls;
-            hook.Original()(state, rotation);
+            hook.Original()(state, rotation); // SAM (or vanilla), exactly once.
             const auto mode = MANAGER(PhotoMode);
             const auto camera = RE::PlayerCamera::GetSingleton();
             if (!mode->IsActive() || !camera || camera->currentState.get() != state) return;
             const float roll = mode->GetViewRoll(0.0f);
             if (!std::isfinite(roll) || roll == 0.0f) return;
-            // SAM suspends our input, not the selected camera roll. Compose
-            // against the original result on every call, never stored angles.
+            // Preserve the complete downstream rotation, including SAM roll.
+            // SAM suspends our input, never this selected roll contribution.
             const auto result = CameraMath::ApplyLocalRoll(
                 {rotation.w, rotation.x, rotation.y, rotation.z}, roll);
             rotation = {result.w, result.x, result.y, result.z};
-            if (++rollApplications == 1) logger::info("View roll applied through FreeCameraState::GetRotation entry hook");
+            if (++rollApplications == 1) logger::info("View roll applied through the chained live rotation getter");
         }
-        static inline Hooks::FunctionHook<decltype(&thunk)> hook;
+        static inline Hooks::VtableChain<decltype(&thunk)> hook;
+        static inline bool reportedFailure{};
 
         static void Install()
         {
-            // This function ID is from the authoritative original Hooks.cpp.
-            // Verify it agrees with the declared getter slot before patching.
-            REL::Relocation<std::uintptr_t> target{ REL::ID(2248281) };
-            REL::Relocation<std::uintptr_t> table{ RE::VTABLE::FreeCameraState[0] };
-            const auto entry = reinterpret_cast<const std::uintptr_t*>(table.address())[0x0C];
-            const auto base = REX::FModule::GetExecutingModule().GetBaseAddress();
-            if (entry != target.address()) {
-                logger::error("View roll entry hook not installed: GetRotation ID/vtable mismatch (ID RVA={:X}, slot RVA={:X}); requires binary analysis", target.address() - base, entry - base);
+            const auto camera = RE::PlayerCamera::GetSingleton();
+            if (!camera || !camera->currentState || camera->currentState->id != RE::CameraState::kFree) return;
+            const auto live = CameraTrace::ReadPointer(reinterpret_cast<std::uintptr_t>(camera->currentState.get()));
+            static REL::Relocation<std::uintptr_t> expected{ RE::VTABLE::FreeCameraState[0] };
+            if (!live || *live != expected.address()) {
+                if (!reportedFailure) logger::error("View roll: unexpected live free-camera vtable; refusing an unverified slot");
+                reportedFailure = true;
                 return;
             }
-            originalGetterCode = CameraTrace::CodeBytes(target.address());
-            const auto status = hook.Install(reinterpret_cast<void*>(target.address()), &thunk);
-            if (status != MH_OK) {
-                logger::error("View roll entry hook failed at RVA {:X}: {}", target.address() - base, MH_StatusToString(status));
-                return;
+            // Slot 0x0C is confirmed by the user's update-code trace:
+            // Fallout4.exe+1022444 calls [vtable+0x60]. No executable patch.
+            constexpr std::size_t slot = 0x0C;
+            const auto result = hook.Install(*live + slot * sizeof(void*), &thunk);
+            if (result == Hooks::ChainResult::installed) {
+                logger::info("View roll chained after {} on first Photo Mode activation; roll remains active in SAM",
+                    CameraTrace::Describe(reinterpret_cast<std::uintptr_t>(hook.Original())));
+            } else if (result != Hooks::ChainResult::alreadyInstalled && !reportedFailure) {
+                logger::error("View roll chain unavailable (status {}); refusing to re-chain a later wrapper to avoid recursion",
+                    std::to_underlying(result));
+                reportedFailure = true;
             }
-            logger::info("View roll entry hook installed at RVA {:X}; roll remains active while SAM is open", target.address() - base);
         }
     };
 
-    static void LogLiveCameraTrace()
+    void EnsureViewRollHook()
     {
-        if (traceEmitted.exchange(true)) return;
-        logger::info("Roll trace BEGIN (2.1.6 diagnostic; no new camera hook)");
-        const auto mode = MANAGER(PhotoMode);
-        logger::info("Roll trace mode: active={}, SAM={}, selected radians={}",
-            mode->IsActive(), mode->IsScreenArcherMenuOpen(), mode->GetViewRoll(0.0f));
-        const auto camera = RE::PlayerCamera::GetSingleton();
-        if (!camera) {
-            logger::info("Roll trace player camera unavailable");
-            logger::info("Roll trace END");
-            return;
-        }
-        const auto describeObject = [](const char* name, std::uintptr_t object, std::uintptr_t expected) {
-            const auto table = CameraTrace::ReadPointer(object);
-            logger::info("Roll trace {} vtable: live={}, expected={}, matches={}", name,
-                table ? CameraTrace::Describe(*table) : "unreadable", CameraTrace::Describe(expected),
-                table && *table == expected);
-        };
-        const auto describeSlot = [](const char* name, std::uintptr_t object, std::size_t slot) {
-            const auto function = CameraTrace::VtableEntry(object, slot);
-            logger::info("Roll trace {} slot {:X}: {}", name, slot,
-                function ? CameraTrace::Describe(*function) : "unreadable");
-            if (function) logger::info("Roll trace code {}: {}", name, CameraTrace::CodeBytes(*function));
-        };
-        REL::Relocation<std::uintptr_t> expectedPlayer{ RE::VTABLE::PlayerCamera[0] };
-        REL::Relocation<std::uintptr_t> expectedFree{ RE::VTABLE::FreeCameraState[0] };
-        REL::Relocation<std::uintptr_t> expectedRender{ RE::VTABLE::NiCamera[0] };
-        const auto object = reinterpret_cast<std::uintptr_t>(camera);
-        describeObject("PlayerCamera", object, expectedPlayer.address());
-        describeSlot("PlayerCamera.Update", object, 0x03); // TESCamera.h
-        const auto state = camera->currentState;
-        if (state) {
-            logger::info("Roll trace current state ID={} (expected free={})",
-                std::to_underlying(state->id.get()), std::to_underlying(RE::CameraState::kFree));
-            const auto stateObject = reinterpret_cast<std::uintptr_t>(state.get());
-            describeObject("current state", stateObject, expectedFree.address());
-            describeSlot("state.Update", stateObject, 0x0B); // TESCameraState.h
-            describeSlot("state.GetRotation", stateObject, 0x0C);
-            describeSlot("state.GetTranslation", stateObject, 0x0D);
-        }
-        REL::Relocation<std::uintptr_t> knownGetter{ REL::ID(2248281) };
-        logger::info("Roll trace ID2248281: {}, pre-detour code={}",
-            CameraTrace::Describe(knownGetter.address()), originalGetterCode);
-        if (const auto graphics = RE::BSGraphics::State::GetSingleton()) {
-            const auto renderCamera = CameraTrace::ReadPointer(
-                reinterpret_cast<std::uintptr_t>(std::addressof(graphics->cameraState.referenceCamera)));
-            if (renderCamera && *renderCamera) {
-                describeObject("render camera", *renderCamera, expectedRender.address());
-                describeSlot("render.UpdateWorldData", *renderCamera, 0x34); // NiCamera.h
-            } else logger::info("Roll trace render camera unavailable");
-        }
-        logger::info("Roll trace END");
+        FreeCameraRotation::Install();
     }
 
     void LogViewRollStatus(float degrees)
     {
-        logger::info("View roll changed to {} degrees; entry hook={}, rotation calls={}, roll applications={}",
-            degrees, FreeCameraRotation::hook.Enabled(), rotationCalls.load(), rollApplications.load());
-        LogLiveCameraTrace();
+        logger::info("View roll changed to {} degrees; live chain={}, rotation calls={}, roll applications={}",
+            degrees, FreeCameraRotation::hook.OwnsSlot(), rotationCalls.load(), rollApplications.load());
     }
 
 	struct DOF_IsActive
@@ -207,7 +159,7 @@ namespace PhotoMode
 
 	void InstallHooks()
 	{
-		FreeCameraRotation::Install();
+		// Roll is chained on activation, after SAM finishes installing its getter.
 
 		stl::write_vfunc<RE::ImageSpaceEffectBokehDepthOfField, Bokeh_IsActive>();
 		stl::write_vfunc<RE::ImageSpaceEffectDepthOfField, DOF_IsActive>();

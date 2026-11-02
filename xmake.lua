@@ -1,6 +1,6 @@
 set_xmakever("3.0.3")
 set_project("PhotoModeF4")
-set_version("2.1.6")
+set_version("2.1.7")
 set_languages("c++23")
 set_encodings("utf-8")
 add_rules("mode.debug", "mode.releasedbg")
@@ -14,15 +14,6 @@ add_requires("freetype 2.13.3", {configs = {shared = false, zlib = false}})
 add_requires("rapidfuzz v3.3.3", "srell 4.063", "unordered_dense v4.8.1")
 includes("lib/commonlibf4")
 
--- Decode x64 entry instructions for direct as well as virtual camera calls.
--- Immutable submodule; C sources use the same MD runtime as the plugin.
-target("photomode-minhook")
-    set_kind("static")
-    set_default(false)
-    set_languages("c11")
-    add_files("lib/minhook/src/buffer.c", "lib/minhook/src/hook.c", "lib/minhook/src/trampoline.c", "lib/minhook/src/hde/hde64.c")
-    add_includedirs("lib/minhook/include", {public = true})
-
 target("photomode-imgui")
     set_kind("static")
     add_files("lib/imgui/imgui*.cpp", "lib/imgui/backends/imgui_impl_dx11.cpp", "lib/imgui/misc/freetype/imgui_freetype.cpp")
@@ -32,7 +23,7 @@ target("photomode-imgui")
     add_syslinks("d3d11", "d3dcompiler", "dxgi")
 
 target("po3_PhotoModeF4")
-    set_version("2.1.6")
+    set_version("2.1.7")
     set_basename("po3_PhotoModeF4")
     set_license("GPL-3.0-or-later") -- Additional linking/modding permissions: THIRD_PARTY_NOTICES.md
     add_rules("commonlibf4.plugin", {
@@ -42,7 +33,7 @@ target("po3_PhotoModeF4")
     })
     set_values("commonlib.plugin.install", false)
     set_symbols("debug")
-    add_deps("photomode-imgui", "photomode-minhook")
+    add_deps("photomode-imgui")
     add_packages("directxtex", "rapidfuzz", "srell", "unordered_dense")
     add_includedirs("include", "lib/clib-util/include")
     add_files("src/**.cpp")
@@ -65,10 +56,10 @@ target("photomode-image-tests")
     add_defines("UNICODE", "_UNICODE")
     add_syslinks("windowscodecs", "ole32", "shell32")
 
--- Actual inline detours on direct and virtual C++ calls, without a game install.
+-- Reproduce a later SAM replacement and chain the live virtual getter.
 target("photomode-hook-tests")
     set_default(false)
     set_kind("binary")
-    add_deps("photomode-minhook")
+    add_deps("commonlibf4")
     add_includedirs("include")
     add_files("tests/windows_hook_tests.cpp")

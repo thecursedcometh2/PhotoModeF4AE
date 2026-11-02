@@ -1,8 +1,7 @@
 #include "CameraMath.h"
 #include "CameraTrace.h"
-#include "FunctionHook.h"
+#include "VtableChain.h"
 #include <atomic>
-#include <cmath>
 #include <iostream>
 #include <stdexcept>
 
@@ -23,26 +22,41 @@ namespace
         virtual __declspec(noinline) void GetRotation(CameraMath::Quaternion& out) const { out = base; }
         CameraMath::Quaternion base{0.5f, 0.5f, 0.5f, 0.5f};
     };
-    // These two paths deliberately exercise a direct CALL and vtable dispatch
-    // against the exact same entry, reproducing the old hook's blind spot.
-    __declspec(noinline) void direct(const CameraFixture& camera, CameraMath::Quaternion& out)
-    {
-        camera.CameraFixture::GetRotation(out);
-    }
+    using Getter = void (*)(const CameraFixture*, CameraMath::Quaternion&);
     __declspec(noinline) void dispatched(const CameraFixture& camera, CameraMath::Quaternion& out)
     {
-        camera.GetRotation(out);
+        // Force a real vtable load; prevent compiler devirtualization in the fixture.
+        const auto table = *reinterpret_cast<Getter const* const*>(&camera);
+        Getter volatile entry = table[0];
+        entry(&camera, out);
     }
-    using GetRotation = void (*)(const CameraFixture*, CameraMath::Quaternion&);
-    Hooks::FunctionHook<GetRotation> hook;
-    std::atomic<unsigned> calls{};
+    Hooks::VtableChain<Getter> samChain, vanillaChain;
+    Hooks::VtableChain<Getter>* currentChain = &samChain;
+    std::atomic<unsigned> earlyCalls{}, samCalls{}, photoCalls{}, newerCalls{};
     bool active{};
-    float roll{};
-    void detour(const CameraFixture* camera, CameraMath::Quaternion& out)
+    float photoRoll{}, samRoll{0.3f};
+    Getter newerDownstream{};
+    void earlyPhoto(const CameraFixture* camera, CameraMath::Quaternion& out)
     {
-        ++calls;
-        hook.Original()(camera, out);
-        if (active) out = CameraMath::ApplyLocalRoll(out, roll);
+        ++earlyCalls;
+        out = camera->base;
+    }
+    void samGetter(const CameraFixture* camera, CameraMath::Quaternion& out)
+    {
+        ++samCalls;
+        // SAM replaces the old getter instead of calling the earlier wrapper.
+        out = CameraMath::ApplyLocalRoll(camera->base, samRoll);
+    }
+    void photoGetter(const CameraFixture* camera, CameraMath::Quaternion& out)
+    {
+        ++photoCalls;
+        currentChain->Original()(camera, out);
+        if (active) out = CameraMath::ApplyLocalRoll(out, photoRoll);
+    }
+    void newerGetter(const CameraFixture* camera, CameraMath::Quaternion& out)
+    {
+        ++newerCalls;
+        newerDownstream(camera, out); // Already includes Photo Mode: do not re-chain it.
     }
 }
 
@@ -50,56 +64,74 @@ int main()
 {
     try {
         CameraFixture camera;
-        auto* target = (*reinterpret_cast<void***>(&camera))[0]; // Fixture declares exactly one virtual method.
-        require(CameraTrace::VtableEntry(reinterpret_cast<std::uintptr_t>(&camera), 0) == reinterpret_cast<std::uintptr_t>(target), "live fixture vtable read");
-        require(!CameraTrace::ReadPointer(0) && !CameraTrace::ReadPointer(1), "invalid pointer read must fail safely");
-        require(!CameraTrace::VtableEntry(reinterpret_cast<std::uintptr_t>(&camera), SIZE_MAX), "overflowing vtable slot accepted");
-        const auto description = CameraTrace::Describe(reinterpret_cast<std::uintptr_t>(target));
+        const auto table = *reinterpret_cast<std::uintptr_t const* const*>(&camera);
+        const auto slot = reinterpret_cast<std::uintptr_t>(table); // Fixture declares one virtual method.
+        const auto vanilla = table[0];
+        require(CameraTrace::VtableEntry(reinterpret_cast<std::uintptr_t>(&camera), 0) == vanilla, "live fixture vtable");
+        require(!CameraTrace::ReadPointer(0) && !CameraTrace::ReadPointer(1), "invalid read");
+        require(!CameraTrace::VtableEntry(reinterpret_cast<std::uintptr_t>(&camera), SIZE_MAX), "slot overflow");
+        const auto description = CameraTrace::Describe(vanilla);
         require(description.find(".exe+") != description.npos && description.find('\\') == description.npos &&
-            description.find('/') == description.npos, "module description must contain basename/RVA only");
-        const auto code = CameraTrace::CodeBytes(reinterpret_cast<std::uintptr_t>(target));
-        require(!code.empty() && code.size() <= 384 && code.find_first_not_of("0123456789ABCDEF") == code.npos,
-            "bounded executable code snapshot");
-        require(CameraTrace::CodeBytes(reinterpret_cast<std::uintptr_t>(&camera)).starts_with("unavailable"),
-            "data/stack bytes must never be dumped");
-        require(CameraTrace::CodeBytes(0).starts_with("unavailable"), "invalid code read must fail safely");
-        std::cout << "Camera trace checks passed: live vtable, invalid/overflow reads, basename-only image labels, bounded executable-only code bytes\n";
-        const auto status = hook.Install(target, &detour);
-        require(status == MH_OK && hook.Enabled(), MH_StatusToString(status));
+            description.find('/') == description.npos, "image label must omit installation path");
+        const auto code = CameraTrace::CodeBytes(vanilla);
+        require(!code.empty() && code.size() <= 384 && code.find_first_not_of("0123456789ABCDEF") == code.npos, "bounded code read");
+        require(CameraTrace::CodeBytes(reinterpret_cast<std::uintptr_t>(&camera)).starts_with("unavailable"), "stack read rejected");
+        std::cout << "Camera trace checks passed: live vtable, invalid/overflow reads, basename-only labels, executable-only snapshots\n";
+
+        // Reproduce the reported regression: SAM installs after an early Photo Mode wrapper.
+        require(REL::WriteSafeData(slot, reinterpret_cast<std::uintptr_t>(&earlyPhoto)), "install early wrapper");
+        require(REL::WriteSafeData(slot, reinterpret_cast<std::uintptr_t>(&samGetter)), "SAM replacement");
         CameraMath::Quaternion out{};
-        direct(camera, out);
-        require(same(out, camera.base) && calls == 1, "inactive direct call/original trampoline");
         dispatched(camera, out);
-        require(same(out, camera.base) && calls == 2, "inactive virtual call");
+        require(samCalls == 1 && earlyCalls == 0, "reproduce overwritten early hook");
+        require(samChain.Install(slot, &photoGetter) == Hooks::ChainResult::installed, "late installation");
+        require(samChain.Original() == &samGetter && samChain.OwnsSlot(), "capture live SAM callback");
+        dispatched(camera, out);
+        require(same(out, CameraMath::ApplyLocalRoll(camera.base, samRoll)), "inactive preserves SAM rotation");
         active = true;
-        roll = 0.7f;
-        const auto expected = CameraMath::ApplyLocalRoll(camera.base, roll);
+        photoRoll = 0.7f;
+        const auto selectedRoll = photoRoll;
         for (int frame = 0; frame < 1000; ++frame) {
-            direct(camera, out);
-            require(same(out, expected), "direct call roll missing or accumulated");
+            require(samChain.Install(slot, &photoGetter) == Hooks::ChainResult::alreadyInstalled, "repeat install must not capture self");
+            const auto beforeSAM = samCalls.load();
+            const auto beforePhoto = photoCalls.load();
             dispatched(camera, out);
-            require(same(out, expected), "virtual call roll missing or accumulated");
+            const auto expected = CameraMath::ApplyLocalRoll(CameraMath::ApplyLocalRoll(camera.base, samRoll), photoRoll);
+            require(same(out, expected), "roll missing, duplicated or accumulated");
+            require(samCalls == beforeSAM + 1 && photoCalls == beforePhoto + 1, "downstream must run exactly once");
+            require(photoRoll == selectedRoll, "selected roll changed");
         }
-        require(calls == 2002, "entry hook missed a direct or virtual call");
-        require(same(camera.base, {0.5f, 0.5f, 0.5f, 0.5f}), "stored camera rotation modified");
-        // Negative and zero settings, then exit: output always derives from
-        // the current original rotation, including another camera writer.
+        // SAM changes its own camera while Photo Mode remains active.
         camera.base = {1, 0, 0, 0};
-        roll = -1.5707963267948966f;
-        direct(camera, out);
-        require(same(out, CameraMath::ApplyLocalRoll(camera.base, roll)), "negative roll or newer baseline lost");
-        roll = 0;
+        samRoll = -0.4f;
         dispatched(camera, out);
-        require(same(out, camera.base), "zero roll not restored");
-        roll = 0.7f;
+        require(same(out, CameraMath::ApplyLocalRoll(CameraMath::ApplyLocalRoll(camera.base, samRoll), photoRoll)), "SAM camera change lost");
         active = false;
-        direct(camera, out);
-        require(same(out, camera.base), "roll persisted after Photo Mode exit");
-        require(hook.Remove() == MH_OK && !hook.Enabled(), "remove hook");
-        const auto previous = calls.load();
-        direct(camera, out);
-        require(calls == previous && same(out, camera.base), "entry not restored after removal");
-        std::cout << "Entry hook checks passed: direct/virtual calls, original trampoline, 1000 frames without accumulation, changed baseline, zero/exit restoration, removal\n";
+        dispatched(camera, out);
+        require(same(out, CameraMath::ApplyLocalRoll(camera.base, samRoll)), "exit must remove only Photo Mode roll");
+
+        newerDownstream = &photoGetter;
+        require(REL::WriteSafeData(slot, reinterpret_cast<std::uintptr_t>(&newerGetter)), "later wrapper installation");
+        require(samChain.Install(slot, &photoGetter) == Hooks::ChainResult::replaced, "do not re-chain later wrapper");
+        require(samChain.Original() == &samGetter && !samChain.Restore(), "do not replace downstream or erase later owner");
+        dispatched(camera, out);
+        require(newerCalls == 1 && same(out, CameraMath::ApplyLocalRoll(camera.base, samRoll)), "later delegation recursed or changed output");
+        require(REL::WriteSafeData(slot, reinterpret_cast<std::uintptr_t>(&photoGetter)), "restore fixture ownership");
+        require(samChain.Restore() && CameraTrace::ReadPointer(slot) == reinterpret_cast<std::uintptr_t>(&samGetter), "cleanup must restore SAM, not vanilla");
+
+        // No-SAM installation: same code captures vanilla and applies exactly one contribution.
+        require(REL::WriteSafeData(slot, vanilla), "reset vanilla fixture");
+        currentChain = &vanillaChain;
+        require(vanillaChain.Install(slot, &photoGetter) == Hooks::ChainResult::installed, "vanilla chain installation");
+        active = true;
+        photoRoll = -1.5707963267948966f;
+        dispatched(camera, out);
+        require(same(out, CameraMath::ApplyLocalRoll(camera.base, photoRoll)), "vanilla roll");
+        photoRoll = 0;
+        dispatched(camera, out);
+        require(same(out, camera.base), "zero/reset restoration");
+        require(vanillaChain.Restore() && CameraTrace::ReadPointer(slot) == vanilla, "restore vanilla fixture");
+        std::cout << "Late camera chain checks passed: reproduced SAM overwrite, captured SAM getter, 1000 idempotent frames, one contribution, SAM changes, exit baseline, later-wrapper recursion protection, vanilla fallback\n";
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
         return 1;

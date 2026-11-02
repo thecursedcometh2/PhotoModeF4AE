@@ -9,7 +9,6 @@ The following git dependencies are submodules, not branch downloads:
 | libxse/commonlib-shared | 29fbdb0e2dc548c9ab22f6964981d75090dc9094 | Recorded recursive gitlink; REL/REX |
 | powerof3/imgui | 55dc9c8badfbd7464cff5da4639b249b91cca225 | Original custom text shadows and dynamic fonts |
 | powerof3/CLibUtil | e1eabe6a063a3abcd3e5b1e739e6ca842fc9a67c | Original INI, RNG, string helpers |
-| TsudaKageyu/minhook | c3fcafdc10146beb5919319d0683e44e3c30d537 | MinHook v1.3.4, x64 entry decoding/detours; static MD, BSD-2-Clause incl. HDE notices |
 | xmake-io/xmake-repo | 56066557b57047b65d60d354bdb9f80e7b878704 | Package recipes and archive checksums |
 
 CommonLib Shared main 79bccb6430237eac766c7e45c9c7a0523bdf92e4 is **not** used:
@@ -71,10 +70,14 @@ The inspected MCM backend targets 1.10.984; its revision is **not** proof of
 1.11.240 compatibility. Install independently maintained compatible MCM/SAM builds.
 Their own runtime support cannot be established by building Photo Mode.
 
-MinHook is pinned as `lib/minhook`, not fetched by branch or tag during builds.
-Only buffer.c, hook.c, trampoline.c and hde64.c are compiled with C11 for x64;
-no MinHook DLL is required. Its full license, including HDE notices, is copied
-as licenses/MinHook-LICENSE.txt. The recursive corresponding-source bundle includes
-its tracked source. It replaces guessed prologue lengths with runtime instruction
-decoding; this does not verify a game function's ABI or guarantee it is called.
-The original GetRotation ID must match its declared vtable entry before installation.
+As of 2.1.7, MinHook is no longer linked or required. Versions 2.1.5/2.1.6 used
+c3fcafdc10146beb5919319d0683e44e3c30d537 for the unsuccessful early entry detour.
+The trace proved the live virtual getter belongs to SAM instead. The replacement
+uses CommonLib Shared's REL::WriteSafeData to chain that vtable slot on activation;
+no instruction relocation library or new Git dependency is required.
+
+The inspected SAM master at 97ce9c286b2ffcd91eed9d51f847631ff51664d6 does not contain
+the installed binary's replacement getter. Its behavior is established by the
+user's 1.11.240 trace (ScreenArcherMenu.dll+62550), not attributed to that source
+revision. The fix captures the current slot at runtime; that observed DLL offset
+is documentation only and is never used as a dependency address.

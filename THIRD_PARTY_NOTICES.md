@@ -40,10 +40,3 @@ unavailable Bethesda controller glyphs; no standalone font binary is packaged.
 ImGui's included stb helpers (Sean Barrett and contributors) retain their MIT
 alternative notices in licenses/ and their complete source headers in the source
 bundle. The external font requirement is unchanged.
-
-MinHook v1.3.4, Copyright (C) 2009–2017 Tsuda Kageyu, and its Hacker Disassembler
-Engine portions, Copyright (c) 2008–2009 Vyacheslav Patkov, are linked statically
-under BSD-2-Clause terms. Preserve the full notice in licenses/MinHook-LICENSE.txt
-with binary redistributions. Their source is included in the recursive source ZIP.
-These permissive terms are compatible with the documented GPL-covered combined
-DLL; they do not change the licenses or exceptions of the other components.
