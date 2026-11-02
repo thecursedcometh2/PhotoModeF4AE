@@ -140,3 +140,17 @@ lookups are refreshed instead of cached indefinitely. No global handler or SAM
 input layer is toggled by this guard. Existing structure-layout assumptions are
 unchanged. Pure ownership-policy checks pass; actual SAM clicks, camera controls,
 menu ordering and game-thread behavior require the in-game matrix in TESTING.md.
+
+## Unused entry confirmed; 2.1.6 diagnostic
+
+The tester subsequently reports `entry hook=true, rotation calls=0` for 2.1.5.
+That invalidates the GetRotation entry as a demonstrated live interception point
+in that installation. Whether another live vtable/type, direct alternate routine,
+or inlining explains this remains unknown. No replacement hook is introduced.
+A one-time read-only trace now compares the SDK's expected vtables with actual
+PlayerCamera/current-state/render-camera objects and captures their declared
+method entries plus bounded main-image executable bytes. This is binary-analysis
+input, not compatibility proof. The methods are read, never invoked by the trace;
+the existing hook's real call counter is not artificially incremented. SAM does
+not reset or suppress the selected roll. Further hook changes require inspecting
+this live evidence or the target executable, as the previous audit already noted.

@@ -112,3 +112,11 @@ The selected Photo Mode roll remains applied while SAM is open; only Photo Mode
 input/UI is suspended there. Exiting Photo Mode removes its roll contribution;
 explicit camera/tab/all resets also reset the selected setting. No camera scene
 transforms or stored gameplay angles are edited. In-game confirmation is pending.
+
+Version 2.1.6 is a **diagnostic build, not a confirmed roll fix**. The tester
+confirmed that the 2.1.5 entry hook installs but receives zero game calls. Changing
+roll once now emits a bounded `Roll trace BEGIN` / `Roll trace END` block with
+live camera vtables, their method image/RVA labels and short executable-only code
+snapshots. Send that entire block, plus the enabled camera-mod names, for analysis.
+No new camera hook is added. The requirement to retain roll while SAM is open
+remains; its mouse-input guard and the selected roll value are unchanged.

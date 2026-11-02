@@ -1,5 +1,6 @@
 #include "Hooks.h"
 #include "CameraMath.h"
+#include "CameraTrace.h"
 #include "FunctionHook.h"
 #include <atomic>
 
@@ -13,6 +14,8 @@ namespace PhotoMode
     namespace
     {
         std::atomic<std::uint64_t> rotationCalls{}, rollApplications{};
+        std::atomic<bool> traceEmitted{};
+        std::string originalGetterCode;
     }
 
     struct FreeCameraRotation
@@ -47,6 +50,7 @@ namespace PhotoMode
                 logger::error("View roll entry hook not installed: GetRotation ID/vtable mismatch (ID RVA={:X}, slot RVA={:X}); requires binary analysis", target.address() - base, entry - base);
                 return;
             }
+            originalGetterCode = CameraTrace::CodeBytes(target.address());
             const auto status = hook.Install(reinterpret_cast<void*>(target.address()), &thunk);
             if (status != MH_OK) {
                 logger::error("View roll entry hook failed at RVA {:X}: {}", target.address() - base, MH_StatusToString(status));
@@ -56,10 +60,66 @@ namespace PhotoMode
         }
     };
 
+    static void LogLiveCameraTrace()
+    {
+        if (traceEmitted.exchange(true)) return;
+        logger::info("Roll trace BEGIN (2.1.6 diagnostic; no new camera hook)");
+        const auto mode = MANAGER(PhotoMode);
+        logger::info("Roll trace mode: active={}, SAM={}, selected radians={}",
+            mode->IsActive(), mode->IsScreenArcherMenuOpen(), mode->GetViewRoll(0.0f));
+        const auto camera = RE::PlayerCamera::GetSingleton();
+        if (!camera) {
+            logger::info("Roll trace player camera unavailable");
+            logger::info("Roll trace END");
+            return;
+        }
+        const auto describeObject = [](const char* name, std::uintptr_t object, std::uintptr_t expected) {
+            const auto table = CameraTrace::ReadPointer(object);
+            logger::info("Roll trace {} vtable: live={}, expected={}, matches={}", name,
+                table ? CameraTrace::Describe(*table) : "unreadable", CameraTrace::Describe(expected),
+                table && *table == expected);
+        };
+        const auto describeSlot = [](const char* name, std::uintptr_t object, std::size_t slot) {
+            const auto function = CameraTrace::VtableEntry(object, slot);
+            logger::info("Roll trace {} slot {:X}: {}", name, slot,
+                function ? CameraTrace::Describe(*function) : "unreadable");
+            if (function) logger::info("Roll trace code {}: {}", name, CameraTrace::CodeBytes(*function));
+        };
+        REL::Relocation<std::uintptr_t> expectedPlayer{ RE::VTABLE::PlayerCamera[0] };
+        REL::Relocation<std::uintptr_t> expectedFree{ RE::VTABLE::FreeCameraState[0] };
+        REL::Relocation<std::uintptr_t> expectedRender{ RE::VTABLE::NiCamera[0] };
+        const auto object = reinterpret_cast<std::uintptr_t>(camera);
+        describeObject("PlayerCamera", object, expectedPlayer.address());
+        describeSlot("PlayerCamera.Update", object, 0x03); // TESCamera.h
+        const auto state = camera->currentState;
+        if (state) {
+            logger::info("Roll trace current state ID={} (expected free={})",
+                std::to_underlying(state->id.get()), std::to_underlying(RE::CameraState::kFree));
+            const auto stateObject = reinterpret_cast<std::uintptr_t>(state.get());
+            describeObject("current state", stateObject, expectedFree.address());
+            describeSlot("state.Update", stateObject, 0x0B); // TESCameraState.h
+            describeSlot("state.GetRotation", stateObject, 0x0C);
+            describeSlot("state.GetTranslation", stateObject, 0x0D);
+        }
+        REL::Relocation<std::uintptr_t> knownGetter{ REL::ID(2248281) };
+        logger::info("Roll trace ID2248281: {}, pre-detour code={}",
+            CameraTrace::Describe(knownGetter.address()), originalGetterCode);
+        if (const auto graphics = RE::BSGraphics::State::GetSingleton()) {
+            const auto renderCamera = CameraTrace::ReadPointer(
+                reinterpret_cast<std::uintptr_t>(std::addressof(graphics->cameraState.referenceCamera)));
+            if (renderCamera && *renderCamera) {
+                describeObject("render camera", *renderCamera, expectedRender.address());
+                describeSlot("render.UpdateWorldData", *renderCamera, 0x34); // NiCamera.h
+            } else logger::info("Roll trace render camera unavailable");
+        }
+        logger::info("Roll trace END");
+    }
+
     void LogViewRollStatus(float degrees)
     {
         logger::info("View roll changed to {} degrees; entry hook={}, rotation calls={}, roll applications={}",
             degrees, FreeCameraRotation::hook.Enabled(), rotationCalls.load(), rollApplications.load());
+        LogLiveCameraTrace();
     }
 
 	struct DOF_IsActive

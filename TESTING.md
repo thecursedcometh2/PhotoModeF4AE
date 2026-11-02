@@ -167,3 +167,30 @@ changed original rotation, zero setting, inactive output and hook removal.
 If the entry hook is installed but rotation calls still remain zero, the selected
 function is bypassed too: inspecting the 1.11.240 executable or a runtime call trace
 is required. Do not label an uncalled hook a successful runtime fix.
+
+## Live camera trace (2.1.6 diagnostic)
+
+The tester confirmed `entry hook=true, rotation calls=0, roll applications=0` on
+2.1.5. Entry detouring works in the native fixture but its selected game function
+is unused in that installation. **Roll is still unresolved.** No new interception
+point is selected until live-object/code evidence can be inspected.
+
+Build 2.1.6 logs a one-time trace from the known-working slider/renderer path:
+player/current-state/render-camera vtables, comparisons to the generated tables,
+declared update/getter slots and code samples (at most 192 bytes each). Original
+getter bytes are captured before the existing detour is installed. Reads use
+ReadProcessMemory with range checks; code snapshots require executable MEM_IMAGE
+pages belonging to the main EXE. Only image basenames and RVAs are printed, never
+installation paths. There are no new method calls to the traced targets, probes
+that inflate the counters, camera-memory writes, or new hooks.
+
+Native checks verify live fixture-vtable reads, invalid pointers, slot overflow,
+basename-only image labels, bounded executable snapshots, and rejection of stack/
+data pages. These validate the trace utility, not a Fallout call path.
+
+In game, confirm 2.1.6, enter Photo Mode and change roll once. Collect the entire
+`Roll trace BEGIN` through `Roll trace END` block, existing entry-hook installation
+line and camera-mod names. Repeated activation must not flood the log (one block
+per process). Normal MCM, screenshots, SAM clicks/camera controls and exit behavior
+must remain unchanged. The actual roll fix remains blocked on this runtime evidence
+or direct analysis of Fallout4.exe 1.11.240; do not guess another hook from a green CI.

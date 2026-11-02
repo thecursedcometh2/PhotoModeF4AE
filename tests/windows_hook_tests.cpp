@@ -1,4 +1,5 @@
 #include "CameraMath.h"
+#include "CameraTrace.h"
 #include "FunctionHook.h"
 #include <atomic>
 #include <cmath>
@@ -50,6 +51,19 @@ int main()
     try {
         CameraFixture camera;
         auto* target = (*reinterpret_cast<void***>(&camera))[0]; // Fixture declares exactly one virtual method.
+        require(CameraTrace::VtableEntry(reinterpret_cast<std::uintptr_t>(&camera), 0) == reinterpret_cast<std::uintptr_t>(target), "live fixture vtable read");
+        require(!CameraTrace::ReadPointer(0) && !CameraTrace::ReadPointer(1), "invalid pointer read must fail safely");
+        require(!CameraTrace::VtableEntry(reinterpret_cast<std::uintptr_t>(&camera), SIZE_MAX), "overflowing vtable slot accepted");
+        const auto description = CameraTrace::Describe(reinterpret_cast<std::uintptr_t>(target));
+        require(description.find(".exe+") != description.npos && description.find('\\') == description.npos &&
+            description.find('/') == description.npos, "module description must contain basename/RVA only");
+        const auto code = CameraTrace::CodeBytes(reinterpret_cast<std::uintptr_t>(target));
+        require(!code.empty() && code.size() <= 384 && code.find_first_not_of("0123456789ABCDEF") == code.npos,
+            "bounded executable code snapshot");
+        require(CameraTrace::CodeBytes(reinterpret_cast<std::uintptr_t>(&camera)).starts_with("unavailable"),
+            "data/stack bytes must never be dumped");
+        require(CameraTrace::CodeBytes(0).starts_with("unavailable"), "invalid code read must fail safely");
+        std::cout << "Camera trace checks passed: live vtable, invalid/overflow reads, basename-only image labels, bounded executable-only code bytes\n";
         const auto status = hook.Install(target, &detour);
         require(status == MH_OK && hook.Enabled(), MH_StatusToString(status));
         CameraMath::Quaternion out{};
