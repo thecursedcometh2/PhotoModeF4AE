@@ -48,7 +48,7 @@ jobs:
         run: xmake f -p windows -a x64 -m releasedbg --toolchain=msvc -y -vD
       - name: Compile and link
         run: xmake -y -vD
-      - name: Windows direct-entry hook checks
+      - name: Windows late camera-hook chain checks
         run: |
           xmake -y -vD photomode-hook-tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

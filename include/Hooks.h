@@ -5,6 +5,7 @@ namespace PhotoMode
 	inline StringMap<RE::TESIdleForm*> cachedIdles;
 	
 	void InstallHooks();
+    void EnsureViewRollHook();
     void LogViewRollStatus(float degrees);
 }
 

@@ -167,3 +167,65 @@ changed original rotation, zero setting, inactive output and hook removal.
 If the entry hook is installed but rotation calls still remain zero, the selected
 function is bypassed too: inspecting the 1.11.240 executable or a runtime call trace
 is required. Do not label an uncalled hook a successful runtime fix.
+
+## Live camera trace (2.1.6 diagnostic)
+
+The tester confirmed `entry hook=true, rotation calls=0, roll applications=0` on
+2.1.5. Entry detouring works in the native fixture but its selected game function
+is unused in that installation. **Roll is still unresolved.** No new interception
+point is selected until live-object/code evidence can be inspected.
+
+Build 2.1.6 logs a one-time trace from the known-working slider/renderer path:
+player/current-state/render-camera vtables, comparisons to the generated tables,
+declared update/getter slots and code samples (at most 192 bytes each). Original
+getter bytes are captured before the existing detour is installed. Reads use
+ReadProcessMemory with range checks; code snapshots require executable MEM_IMAGE
+pages belonging to the main EXE. Only image basenames and RVAs are printed, never
+installation paths. There are no new method calls to the traced targets, probes
+that inflate the counters, camera-memory writes, or new hooks.
+
+Native checks verify live fixture-vtable reads, invalid pointers, slot overflow,
+basename-only image labels, bounded executable snapshots, and rejection of stack/
+data pages. These validate the trace utility, not a Fallout call path.
+
+In game, confirm 2.1.6, enter Photo Mode and change roll once. Collect the entire
+`Roll trace BEGIN` through `Roll trace END` block, existing entry-hook installation
+line and camera-mod names. Repeated activation must not flood the log (one block
+per process). Normal MCM, screenshots, SAM clicks/camera controls and exit behavior
+must remain unchanged. The actual roll fix remains blocked on this runtime evidence
+or direct analysis of Fallout4.exe 1.11.240; do not guess another hook from a green CI.
+
+## SAM replacement getter identified; late chain (2.1.7)
+
+The tester supplied the full trace: SDK/live tables match, but state.GetRotation
+is ScreenArcherMenu.dll+62550. Disassembly of the supplied state.Update bytes
+confirms the indirect call through slot 0x0C at EXE RVA 0x1022444. This explains the
+zero original-entry counts and supersedes the preceding unresolved diagnosis.
+
+Native Windows tests now reproduce the actual ordering failure: an early Photo
+Mode wrapper is overwritten by a SAM-style getter that does not call it. The real
+late-chain helper captures that replacement and preserves its output while adding
+Photo Mode roll exactly once. Checks cover 1000 idempotent installs/calls without
+self-recursion or accumulation, SAM changing its baseline, Photo Mode exit/reset,
+later wrappers that already delegate to Photo Mode, guarded restoration, and
+operation without SAM. The old entry detour tests/dependency are replaced.
+
+In game (pending):
+
+1. With SAM installed, enter Photo Mode. Confirm version 2.1.7 and `View roll chained
+   after ScreenArcherMenu.dll+...` (the offset may differ by SAM version).
+2. Change roll through +/-30, +/-90 and zero. Confirm visible rotation/screenshots,
+   nonzero rotation-call counts and `View roll applied through the chained live
+   rotation getter`. Wait frozen, move/look: no accumulating roll.
+3. Keep nonzero roll, open SAM and use its position/yaw/pitch/FOV controls. The
+   selected Photo Mode roll and its effect remain. LMB/RMB SAM clicks do not move
+   Photo Mode vertically. Close/reopen SAM repeatedly; no reset or disappearance.
+4. Exit/reenter Photo Mode, also with pre-existing TFC: only Photo Mode's contribution
+   disappears on exit, SAM's own baseline survives, selected roll starts at zero.
+5. Repeat activation several times; the hook is not stacked and angles do not double.
+   Test without SAM as well: log captures Fallout4.exe's getter instead.
+6. Any `View roll chain unavailable` warning needs investigation; do not force a
+   later callback back into the slot because that can create a delegation cycle.
+
+The runtime trace confirms the cause/callsite. It does not certify the corrected
+DLL's in-game behavior; native success and the above pending checks remain separate.

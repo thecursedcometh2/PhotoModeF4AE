@@ -104,11 +104,19 @@ This was updated using Codex 6.1 Sol.
 ## License
 powerof3's Photo Mode is distributed under the MIT license. libxse's CommonLibF4 is distributed under GPL-3.0 with a Modding Exception. This mod is distributed under GPL-3.0 with a modding exception. See [MIT LICENSE](https://github.com/thecursedcometh2/PhotoModeF4AE/blob/master/MIT%20LICENSE), [LICENSE](https://github.com/thecursedcometh2/PhotoModeF4AE/blob/master/LICENSE), and [EXCEPTIONS](https://github.com/thecursedcometh2/PhotoModeF4AE/blob/master/EXCEPTIONS).
 
-Version 2.1.5 replaces the unused virtual camera-update hook (confirmed by the
-user's zero-call log) with a decoded entry detour of the original rotation getter.
-It checks the original address ID against the declared vtable entry, uses pinned
-MinHook to relocate complete instructions, and logs installation and actual calls.
-The selected Photo Mode roll remains applied while SAM is open; only Photo Mode
-input/UI is suspended there. Exiting Photo Mode removes its roll contribution;
-explicit camera/tab/all resets also reset the selected setting. No camera scene
-transforms or stored gameplay angles are edited. In-game confirmation is pending.
+SAM remains optional: without SAM, Photo Mode chains the vanilla game getter.
+Neither mod requires the other to be installed.
+
+Version 2.1.7 fixes the hook-order conflict identified in the live trace: SAM
+replaces the free-camera rotation getter after Photo Mode's startup hook. Photo
+Mode now chains the live getter on first activation, calls SAM's getter once,
+and adds the selected roll to its result. The original unused entry hook and
+MinHook dependency are removed. No SAM DLL offset is hardcoded.
+
+The selected roll remains applied while SAM is open. SAM still owns its input,
+so clicking its menu does not trigger Photo Mode's vertical movement. Exiting
+Photo Mode removes its roll contribution while preserving SAM's rotation; explicit
+reset controls retain their original behavior. Native hook-order regression
+checks run in Windows CI. Visible roll and SAM transitions still need in-game
+confirmation with this build. Logs report the captured callback's module and
+actual rotation/application counts.

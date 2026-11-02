@@ -15,7 +15,7 @@ No new relocation IDs or instruction offsets have been guessed.
 
 | Hook/location | Address/slot and expected signature | Purpose, rationale, verification |
 | --- | --- | --- |
-| Camera rotation, Hooks.cpp | REL::ID(2248281), function entry; void(const FreeCameraState*, NiQuaternion&) | Original upstream names this GetRotation. Installation requires equality with FreeCameraState VTABLE[0], slot 0x0C from TESCameraState.h; MinHook decodes/relocates full entry instructions, failing safely if unsupported. Original result is post-multiplied by local-Y roll only for the active player's free camera, including while SAM is open. No instruction offset. Direct/virtual fixture checks run in Windows CI; actual game target/dispatch still requires game verification. |
+| Camera rotation, Hooks.cpp | Live FreeCameraState VTABLE[0], slot 0x0C; void(const FreeCameraState*, NiQuaternion&) | Live table matches SDK. User-supplied bytes at EXE RVA 0x1022444 decode to FF 50 60, confirming dispatch through slot 0x0C; target is SAM, not original REL::ID(2248281). On activation capture current callback, publish original before writing slot with REL::WriteSafeData, then call downstream once and compose local-Y roll. No code/DLL offsets patched. Runtime hook conflict/callsite established by trace; corrected in-game effect remains pending. |
 | DOF_IsActive | ImageSpaceEffectDepthOfField VTABLE[0], 0x08; bool(ImageSpaceEffectDepthOfField*) | Suppresses vanilla DOF during Photo Mode. Pinned ImageSpaceEffect.h declares IsActive at 08. Runtime dispatch/layout unverified. |
 | Bokeh_IsActive | ImageSpaceEffectBokehDepthOfField VTABLE[0], 0x08; bool(ImageSpaceEffectDepthOfField*) | Enables controlled DOF; same base method as above. Runtime unverified. |
 | Pause-menu handler | PauseMenu VTABLE[0], 0x01; void(PauseMenu*, const Scaleform::GFx::FunctionHandler::Params&) | Retains upstream callback and userData=16 test and selectedEntry marker/disabled checks (display text uses the plugin translation map). SWFToCodeFunctionHandler.h declares Call at 01 in the primary menu vtable. Userdata and SWF paths still require target verification. |
@@ -43,28 +43,39 @@ Update vtable hook is not called in that installation; it does not establish
 whether the getter is inlined, called directly, or replaced by another camera mod.
 Both unsuccessful virtual-hook approaches have now been removed.
 
-Version 2.1.5 detours the GetRotation entry itself, allowing direct calls to reach
-the hook. Before installation, the existing upstream ID must equal the declared
-getter vtable entry; a mismatch logs both RVAs and leaves the target unpatched,
-requiring binary analysis instead of guessing. MinHook v1.3.4 dynamically decodes
-and relocates instructions into its original trampoline. No prologue length is
-assumed, and hook/decoder failures log an explicit status. This check is a safety
-constraint, not proof of the target's runtime ABI. Binary/game confirmation remains
-necessary, especially if another mod has replaced the entry or inlined the getter.
+The 2.1.5 entry detour also received zero calls. The 2.1.6 trace then established
+why: the live table itself matches FreeCameraState, but slot 0x0C contains
+ScreenArcherMenu.dll+62550. The original EXE getter at RVA 0x1022520 is bypassed.
+The supplied state.Update bytes disassemble to the following call sequence:
 
-The callback calls the original exactly once and composes local-Y roll on its
-returned quaternion for the current free camera while Photo Mode is active.
-It deliberately does NOT test whether SAM is open: the selected roll and visible
-contribution must remain while SAM owns input. Exiting Photo Mode makes the callback
-return the original result; explicit resets zero the stored setting. Stored camera
-angles and scene matrices are never modified. The prior scene-overlay ownership
-code is removed, avoiding accumulation and scene-graph restoration side effects.
+- EXE RVA 0x102243A loads the state's vtable into RAX.
+- RVA 0x102243D loads an output buffer into RDX; RCX receives the state pointer.
+- RVA 0x1022444: `FF 50 60`, call qword ptr [RAX+0x60] (slot 0x0C).
+- RVA 0x1022451: `FF 50 68`, translation getter (slot 0x0D).
+- The quaternion output is converted to a matrix and stored into the camera root.
 
-Logs record installation success/failure, first application, and slider changes
-with entry-hook status, rotation calls and applications. Native Windows fixtures
-exercise the actual production MinHook wrapper with direct and virtual calls,
-trampoline return, 1000 frames, changed baseline, zero/exit and removal; portable
-quaternion tests cover composition. Those are not Fallout4.exe runtime tests.
+These are observations from the user's actual code snapshot, disassembled with
+objdump in the development environment. They are not patch offsets or signatures.
+The public SAM master inspected earlier lacks this replacement; do not claim its
+old source verifies the installed binary's implementation. The observed ABI and
+live dispatch plus the SDK declaration justify chaining the opaque callback.
+
+2.1.7 removes the unused entry detour and MinHook. First activation, after toggling
+free camera, checks that the live state is free and its vtable matches the SDK.
+It captures slot 0x0C's current function (SAM or vanilla), publishes that downstream
+pointer, then writes Photo Mode's wrapper with CommonLib Shared REL::WriteSafeData.
+The wrapper calls that function exactly once, preserving its complete quaternion,
+and composes the Photo Mode roll while active, including with SAM open. It writes
+no stored angles/scene transforms; inactive output is the downstream result.
+
+Frame checks are idempotent and never capture the Photo Mode wrapper as its own
+original. If another mod later replaces the slot, the code logs and refuses blind
+re-chaining: that wrapper may already call Photo Mode and form a cycle. No lifecycle
+unpatch erases SAM's changes. Native fixtures reproduce an early wrapper overwritten
+by a SAM-style replacement, then test the actual late-chain helper, exactly-once
+composition, idempotence, changed SAM baseline, inactive/zero output, later-wrapper
+recursion protection and vanilla operation. Actual visible roll/sign and SAM menu
+open/close behavior still require the in-game matrix.
 
 ## Capture and compositing analysis
 
@@ -140,3 +151,25 @@ lookups are refreshed instead of cached indefinitely. No global handler or SAM
 input layer is toggled by this guard. Existing structure-layout assumptions are
 unchanged. Pure ownership-policy checks pass; actual SAM clicks, camera controls,
 menu ordering and game-thread behavior require the in-game matrix in TESTING.md.
+
+## Unused entry confirmed; 2.1.6 diagnostic
+
+The tester subsequently reports `entry hook=true, rotation calls=0` for 2.1.5.
+That invalidates the GetRotation entry as a demonstrated live interception point
+in that installation. Whether another live vtable/type, direct alternate routine,
+or inlining explains this remains unknown. No replacement hook is introduced.
+A one-time read-only trace now compares the SDK's expected vtables with actual
+PlayerCamera/current-state/render-camera objects and captures their declared
+method entries plus bounded main-image executable bytes. This is binary-analysis
+input, not compatibility proof. The methods are read, never invoked by the trace;
+the existing hook's real call counter is not artificially incremented. SAM does
+not reset or suppress the selected roll. Further hook changes require inspecting
+this live evidence or the target executable, as the previous audit already noted.
+
+## Trace resolution (2.1.7)
+
+The diagnostic trace requested above was supplied. It identifies SAM's replacement
+getter and confirms the game dispatches to it from state.Update; the assumption
+that camera virtual dispatch itself was unused was incomplete. The unused target
+was the original EXE getter after SAM replaced the slot. The late-chain fix above
+uses this evidence; the specific observed SAM RVA is never hardcoded.

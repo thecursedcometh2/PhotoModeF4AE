@@ -1,4 +1,5 @@
 #include "PhotoMode/Manager.h"
+#include "Hooks.h"
 
 #include "ImGui/Fonts/Manager.h"
 #include "ImGui/Styles.h"
@@ -112,6 +113,8 @@ namespace PhotoMode
 			pcCamera->ToggleFreeCameraMode(false);
 		}
 
+        EnsureViewRollHook();
+
 		// disable controls
 		TogglePlayerControls(false);
 
@@ -167,6 +170,7 @@ namespace PhotoMode
 
 	bool Manager::OnFrameUpdate()
     {
+        EnsureViewRollHook();
         // SAM uses its own input context. Suspend our UI/input without ending
         // Photo Mode, restoring camera state, or disabling SAM camera controls.
         if (IsScreenArcherMenuOpen()) {
