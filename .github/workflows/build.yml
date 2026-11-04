@@ -48,6 +48,12 @@ jobs:
         run: xmake f -p windows -a x64 -m releasedbg --toolchain=msvc -y -vD
       - name: Compile and link
         run: xmake -y -vD
+      - name: Windows window-procedure forwarding checks
+        run: |
+          xmake -y -vD photomode-window-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          xmake run photomode-window-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Windows late camera-hook chain checks
         run: |
           xmake -y -vD photomode-hook-tests

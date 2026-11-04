@@ -187,3 +187,19 @@ remain in the hook-chain helper; failure checks and error logs remain. The late
 vtable capture, downstream call, quaternion composition, SAM input guard and reset
 behavior are unchanged. The user confirmation covers the reported regression,
 not every hook or every row of the broader in-game matrix.
+
+## Window procedure forwarding correction (2.1.9)
+
+The supplied crash target 0xFFFF0AC7 is consistent with an opaque Win32 procedure
+value. PDB S_PUB32 record for the exact 2.1.7 DLL places Renderer::WndProc::thunk
+at section 1 offset 0x21FB0, plus .text RVA 0x1000 = 0x22FB0, matching the log.
+Disassembly confirms a tail jump through the saved procedure value. Replace that
+direct invocation with CallWindowProcA; no engine relocation or hook slot changes.
+Microsoft documents that saved WNDPROC values may be internal tokens and that
+CallWindowProc performs ANSI/Unicode conversion. Source:
+https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-callwindowproca
+
+This is a concrete forwarding defect supported by the crash, not proof that
+DearModdingUI, mirrors, Community Shaders or another scanned module is at fault.
+Native window-chain checks validate the API correction; game confirmation remains
+pending. Camera roll and screenshot behavior are unchanged.
