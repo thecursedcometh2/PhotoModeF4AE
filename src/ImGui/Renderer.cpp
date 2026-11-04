@@ -1,4 +1,5 @@
 #include "ImGui/Renderer.h"
+#include "ImGui/WindowProcedure.h"
 #include "ImGui/Fonts/Manager.h"
 #include "ImGui/Styles.h"
 
@@ -16,12 +17,11 @@ namespace ImGui::Renderer
 	{
 		static LRESULT thunk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
-			auto& io = ImGui::GetIO();
-			if (uMsg == WM_KILLFOCUS) {
-				io.ClearInputKeys();
+			if (uMsg == WM_KILLFOCUS && ImGui::GetCurrentContext()) {
+				ImGui::GetIO().ClearInputKeys();
 			}
 
-			return func(hWnd, uMsg, wParam, lParam);
+			return WindowProcedure::Forward(func, hWnd, uMsg, wParam, lParam);
 		}
 		static inline WNDPROC func;
 	};

@@ -81,3 +81,23 @@ Inspect PNG alpha extrema with an image tool. Back up original photos before the
 preservation test. The output uses exclusive file creation and never falls back to
 an unchecked vanilla writer for failed queued Photo Mode captures. No rollback or
 screenshot-counter edits should be necessary.
+
+## Window-message startup crash (2.1.9)
+
+A supplied Addictol log reports execution at 0xFFFF0AC7, USER32 message handling,
+and Photo Mode RVA 0x22FB0. The exact 2.1.7 PDB maps that RVA to
+ImGui::Renderer::WndProc::thunk; its compiled tail jumps to the saved procedure
+pointer in RAX. Windows permits that saved value to be an opaque internal token,
+which must be forwarded with CallWindowProc rather than called directly.
+
+2.1.9 uses CallWindowProcA, matching the existing SetWindowLongPtrA subclass API.
+It also avoids accessing absent ImGui context on focus loss and has a default
+procedure fallback when no previous procedure was captured. Native Windows tests
+use hidden ANSI/Unicode/system-default windows with earlier and later subclass
+handlers, checking text conversion, return values, single delivery and fallback.
+The actual affected user's setup still needs a retry; the stack scan does not
+establish which other plugin, if any, selected the previous procedure token.
+
+In game: retry the same startup/save with Photo Mode enabled, then test focus
+loss/return, menus, Photo Mode and SAM. Keep the normal DLL dependency set for an
+existing save; stripping every F4SE plugin is not an equivalent load test.

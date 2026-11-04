@@ -1,6 +1,6 @@
 set_xmakever("3.0.3")
 set_project("PhotoModeF4")
-set_version("2.1.8")
+set_version("2.1.9")
 set_languages("c++23")
 set_encodings("utf-8")
 add_rules("mode.debug", "mode.releasedbg")
@@ -23,7 +23,7 @@ target("photomode-imgui")
     add_syslinks("d3d11", "d3dcompiler", "dxgi")
 
 target("po3_PhotoModeF4")
-    set_version("2.1.8")
+    set_version("2.1.9")
     set_basename("po3_PhotoModeF4")
     set_license("GPL-3.0-or-later") -- Additional linking/modding permissions: THIRD_PARTY_NOTICES.md
     add_rules("commonlibf4.plugin", {
@@ -63,3 +63,10 @@ target("photomode-hook-tests")
     add_deps("commonlibf4")
     add_includedirs("include")
     add_files("tests/windows_hook_tests.cpp")
+
+target("photomode-window-tests")
+    set_default(false)
+    set_kind("binary")
+    add_includedirs("include")
+    add_files("tests/windows_window_tests.cpp")
+    add_syslinks("user32")

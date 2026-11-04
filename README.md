@@ -107,7 +107,9 @@ powerof3's Photo Mode is distributed under the MIT license. libxse's CommonLibF4
 SAM remains optional: without SAM, Photo Mode chains the vanilla game getter.
 Neither mod requires the other to be installed.
 
-Version 2.1.8 is the final cleanup of the user-tested 2.1.7 roll fix. Photo Mode
+Version 2.1.9 retains the user-tested roll fix and corrects window-message
+forwarding through CallWindowProcA, including Windows opaque procedure tokens
+and ANSI/Unicode subclass chains. Photo Mode
 chains the live rotation getter after startup, preserving SAM's rotation and adding
 the selected Photo Mode roll. The selected roll remains applied while SAM is open;
 its mouse-input guard remains active. Exiting Photo Mode removes its contribution.
