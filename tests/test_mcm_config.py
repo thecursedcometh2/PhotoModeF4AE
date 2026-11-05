@@ -65,3 +65,32 @@ class MCMConfig(unittest.TestCase):
                     self.assertEqual(actions[control['id']], {'type': 'RunConsoleCommand', 'command': 'PhotoMode'})
         self.assertEqual(len(actions), 1)
         self.assertFalse((ROOT / 'Data/MCM/Settings').exists(), 'Never ship user overrides or global keybind saves')
+
+
+class MCMTranslations(unittest.TestCase):
+    def test_all_display_keys_have_english_fallback(self):
+        data = (ROOT / 'Data/Interface/Translations/PhotoMode_EN.txt').read_bytes()
+        self.assertTrue(data.startswith(b'\xff\xfe'))
+        entries = {}
+        for line in data.decode('utf-16').splitlines():
+            parts = line.split(None, 1)
+            if len(parts) == 2 and parts[0].startswith('$'):
+                entries[parts[0]] = parts[1]
+        def check(value):
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    if key in ('text', 'help', 'displayName', 'pageDisplayName'):
+                        self.assertTrue(item.startswith('$'), item)
+                        self.assertIn(item, entries)
+                    elif key == 'options':
+                        for option in item:
+                            self.assertIn(option, entries)
+                    else:
+                        check(item)
+            elif isinstance(value, list):
+                for item in value:
+                    check(item)
+        menu = json.loads((CONFIG / 'config.json').read_text())
+        self.assertEqual(menu['displayName'], '$PM_Title_MCM')
+        self.assertEqual(menu['pages'][0]['pageDisplayName'], '$PM_SettingsPage')
+        check(menu)

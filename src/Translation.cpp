@@ -78,6 +78,9 @@ namespace Translation
             return;
         }
 
+        translator->AddTranslationsFile("Interface\\Translations\\PhotoMode_EN.txt");
+        if (GetGameLanguage() != "EN") translator->AddTranslationsMod("PhotoMode");
+
         auto FetchTranslation = [this](RE::BSScaleformTranslator* a_trns, const wchar_t* a_key) {
 			auto it = a_trns->translator.translationMap.find(a_key);
 			if (it != a_trns->translator.translationMap.end()) {

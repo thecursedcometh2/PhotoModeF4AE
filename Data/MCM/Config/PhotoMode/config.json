@@ -1,26 +1,26 @@
 {
   "modName": "PhotoMode",
-  "displayName": "Photo Mode",
+  "displayName": "$PM_Title_MCM",
   "minMcmVersion": 9,
   "pages": [
     {
-      "pageDisplayName": "General",
+      "pageDisplayName": "$PM_SettingsPage",
       "content": [
         {
           "type": "section",
-          "text": "Photo Mode"
+          "text": "$PM_OpenPhotoMode_Header"
         },
         {
           "type": "hotkey",
           "id": "TogglePhotoMode",
-          "text": "Toggle Photo Mode",
-          "help": "Optional global keyboard/mouse hotkey. MCM manages modifiers and persistence; no quest script is required."
+          "text": "$PM_PrimaryKey_Text",
+          "help": "$PM_MCM_Extra001"
         },
         {
           "type": "slider",
           "id": "fFreeCameraTranslationSpeed:Settings",
-          "text": "Camera movement speed",
-          "help": "Applied when entering Photo Mode.",
+          "text": "$PM_FreeCameraTranslationSpeed_Text",
+          "help": "$PM_FreeCameraTranslationSpeed_Help",
           "valueOptions": {
             "sourceType": "ModSettingFloat",
             "min": 0.1,
@@ -31,8 +31,8 @@
         {
           "type": "switcher",
           "id": "bFreezeTimeOnStart:Settings",
-          "text": "Freeze time on entry",
-          "help": "Freeze game time when entering Photo Mode.",
+          "text": "$PM_FreezeTimeOnStart_Text",
+          "help": "$PM_FreezeTimeOnStart_Help",
           "valueOptions": {
             "sourceType": "ModSettingBool"
           }
@@ -40,8 +40,8 @@
         {
           "type": "switcher",
           "id": "bOpenFromPauseMenu:Settings",
-          "text": "Show pause-menu entry",
-          "help": "Offer Photo Mode in the pause menu on the next opening.",
+          "text": "$PM_OpenFromPauseMenu_Text",
+          "help": "$PM_OpenFromPauseMenu_Help",
           "valueOptions": {
             "sourceType": "ModSettingBool"
           }
@@ -49,8 +49,8 @@
         {
           "type": "switcher",
           "id": "bCustomPhotoFolder:Screenshots",
-          "text": "Use Photos folder",
-          "help": "Save to Documents/My Games/Fallout4/Photos; otherwise use the game screenshot prefix.",
+          "text": "$PM_CustomPhotoFolder_Text",
+          "help": "$PM_CustomPhotoFolder_Help",
           "valueOptions": {
             "sourceType": "ModSettingBool"
           }
@@ -58,8 +58,8 @@
         {
           "type": "switcher",
           "id": "bAutoHideMenus:Screenshots",
-          "text": "Hide menus in screenshots",
-          "help": "Automatically hide game menus during capture.",
+          "text": "$PM_AutoHideMenus_Text",
+          "help": "$PM_AutoHideMenus_Help",
           "valueOptions": {
             "sourceType": "ModSettingBool"
           }
@@ -67,8 +67,8 @@
         {
           "type": "switcher",
           "id": "bMultiScreenshots:Screenshots",
-          "text": "Allow repeated screenshots",
-          "help": "Allow holding the photo key to capture more than one image.",
+          "text": "$PM_MultiScreenshots_Text",
+          "help": "$PM_MultiScreenshots_Help",
           "valueOptions": {
             "sourceType": "ModSettingBool"
           }
@@ -76,22 +76,22 @@
         {
           "type": "dropdown",
           "id": "iButtonScheme:Controls",
-          "text": "Controller prompts",
-          "help": "Choose controller prompt labels.",
+          "text": "$PM_ControllerButtonScheme_Text",
+          "help": "$PM_MCM_Extra002",
           "valueOptions": {
             "sourceType": "ModSettingInt",
             "options": [
-              "Automatic",
-              "Xbox",
-              "PlayStation"
+              "$PM_AUTODETECT",
+              "$PM_XBOX",
+              "$PM_PLAYSTATION"
             ]
           }
         },
         {
           "type": "slider",
           "id": "fKeyHeldDuration:Controls",
-          "text": "Hold duration (seconds)",
-          "help": "Time to hold Reset for reset-all, or the screenshot key for repeated capture.",
+          "text": "$PM_KeyHeldDuration_Text",
+          "help": "$PM_KeyHeldDuration_Help",
           "valueOptions": {
             "sourceType": "ModSettingFloat",
             "min": 0.1,
@@ -101,22 +101,22 @@
         },
         {
           "type": "text",
-          "text": "Close the pause menu to apply settings. Camera speed and freeze-on-entry apply on the next Photo Mode entry."
+          "text": "$PM_MCM_Extra003"
         }
       ]
     },
     {
-      "pageDisplayName": "Keyboard / Mouse",
+      "pageDisplayName": "$PM_Controls_Page",
       "content": [
         {
           "type": "text",
-          "text": "Single keys only. Escape cancels capture; Tab clears a binding. Avoid duplicate keys and movement controls."
+          "text": "$PM_MCM_Extra004"
         },
         {
           "type": "keyinput",
           "id": "sResetKey:Controls",
-          "text": "Reset / hold to reset all",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_Reset_Key_Text",
+          "help": "$PM_MCM_Extra005",
           "valueOptions": {
             "sourceType": "ModSettingString",
             "allowModifierKeys": 0
@@ -125,8 +125,8 @@
         {
           "type": "keyinput",
           "id": "sTakePhotoKey:Controls",
-          "text": "Take photo",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_TakePhoto_Key_Text",
+          "help": "$PM_MCM_Extra006",
           "valueOptions": {
             "sourceType": "ModSettingString",
             "allowModifierKeys": 0
@@ -135,8 +135,8 @@
         {
           "type": "keyinput",
           "id": "sToggleMenusKey:Controls",
-          "text": "Toggle menus",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_ToggleMenus_Key_Text",
+          "help": "$PM_MCM_Extra007",
           "valueOptions": {
             "sourceType": "ModSettingString",
             "allowModifierKeys": 0
@@ -145,8 +145,8 @@
         {
           "type": "keyinput",
           "id": "sNextTabKey:Controls",
-          "text": "Next tab",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_NextTab_Key_Text",
+          "help": "$PM_MCM_Extra008",
           "valueOptions": {
             "sourceType": "ModSettingString",
             "allowModifierKeys": 0
@@ -155,8 +155,8 @@
         {
           "type": "keyinput",
           "id": "sPreviousTabKey:Controls",
-          "text": "Previous tab",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_PreviousTab_Key_Text",
+          "help": "$PM_MCM_Extra009",
           "valueOptions": {
             "sourceType": "ModSettingString",
             "allowModifierKeys": 0
@@ -165,8 +165,8 @@
         {
           "type": "keyinput",
           "id": "sFreezeTimeKey:Controls",
-          "text": "Toggle time freeze",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_FreezeTime",
+          "help": "$PM_MCM_Extra010",
           "valueOptions": {
             "sourceType": "ModSettingString",
             "allowModifierKeys": 0
@@ -175,177 +175,177 @@
       ]
     },
     {
-      "pageDisplayName": "Controller",
+      "pageDisplayName": "$PM_MiscKeybinds_GamePad_Header",
       "content": [
         {
           "type": "text",
-          "text": "Select buttons from the list. Avoid duplicates and buttons reserved for navigation (A / Cross and B / Circle)."
+          "text": "$PM_MCM_Extra011"
         },
         {
           "type": "dropdown",
           "id": "iResetController:Controls",
-          "text": "Reset / hold to reset all",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_Reset_Key_Text",
+          "help": "$PM_MCM_Extra012",
           "valueOptions": {
             "sourceType": "ModSettingInt",
             "options": [
-              "Unbound",
-              "D-pad Up",
-              "D-pad Down",
-              "D-pad Left",
-              "D-pad Right",
-              "Start / Options",
-              "Back / Touchpad",
-              "Left stick press",
-              "Right stick press",
-              "LB / L1",
-              "RB / R1",
-              "A / Cross",
-              "B / Circle",
-              "X / Square",
-              "Y / Triangle",
-              "LT / L2",
-              "RT / R2"
+              "$PM_MCM_GamepadOption00",
+              "$PM_MCM_GamepadOption01",
+              "$PM_MCM_GamepadOption02",
+              "$PM_MCM_GamepadOption03",
+              "$PM_MCM_GamepadOption04",
+              "$PM_MCM_GamepadOption05",
+              "$PM_MCM_GamepadOption06",
+              "$PM_MCM_GamepadOption07",
+              "$PM_MCM_GamepadOption08",
+              "$PM_MCM_GamepadOption09",
+              "$PM_MCM_GamepadOption10",
+              "$PM_MCM_GamepadOption11",
+              "$PM_MCM_GamepadOption12",
+              "$PM_MCM_GamepadOption13",
+              "$PM_MCM_GamepadOption14",
+              "$PM_MCM_GamepadOption15",
+              "$PM_MCM_GamepadOption16"
             ]
           }
         },
         {
           "type": "dropdown",
           "id": "iTakePhotoController:Controls",
-          "text": "Take photo",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_TakePhoto_Key_Text",
+          "help": "$PM_MCM_Extra013",
           "valueOptions": {
             "sourceType": "ModSettingInt",
             "options": [
-              "Unbound",
-              "D-pad Up",
-              "D-pad Down",
-              "D-pad Left",
-              "D-pad Right",
-              "Start / Options",
-              "Back / Touchpad",
-              "Left stick press",
-              "Right stick press",
-              "LB / L1",
-              "RB / R1",
-              "A / Cross",
-              "B / Circle",
-              "X / Square",
-              "Y / Triangle",
-              "LT / L2",
-              "RT / R2"
+              "$PM_MCM_GamepadOption00",
+              "$PM_MCM_GamepadOption01",
+              "$PM_MCM_GamepadOption02",
+              "$PM_MCM_GamepadOption03",
+              "$PM_MCM_GamepadOption04",
+              "$PM_MCM_GamepadOption05",
+              "$PM_MCM_GamepadOption06",
+              "$PM_MCM_GamepadOption07",
+              "$PM_MCM_GamepadOption08",
+              "$PM_MCM_GamepadOption09",
+              "$PM_MCM_GamepadOption10",
+              "$PM_MCM_GamepadOption11",
+              "$PM_MCM_GamepadOption12",
+              "$PM_MCM_GamepadOption13",
+              "$PM_MCM_GamepadOption14",
+              "$PM_MCM_GamepadOption15",
+              "$PM_MCM_GamepadOption16"
             ]
           }
         },
         {
           "type": "dropdown",
           "id": "iToggleMenusController:Controls",
-          "text": "Toggle menus",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_ToggleMenus_Key_Text",
+          "help": "$PM_MCM_Extra014",
           "valueOptions": {
             "sourceType": "ModSettingInt",
             "options": [
-              "Unbound",
-              "D-pad Up",
-              "D-pad Down",
-              "D-pad Left",
-              "D-pad Right",
-              "Start / Options",
-              "Back / Touchpad",
-              "Left stick press",
-              "Right stick press",
-              "LB / L1",
-              "RB / R1",
-              "A / Cross",
-              "B / Circle",
-              "X / Square",
-              "Y / Triangle",
-              "LT / L2",
-              "RT / R2"
+              "$PM_MCM_GamepadOption00",
+              "$PM_MCM_GamepadOption01",
+              "$PM_MCM_GamepadOption02",
+              "$PM_MCM_GamepadOption03",
+              "$PM_MCM_GamepadOption04",
+              "$PM_MCM_GamepadOption05",
+              "$PM_MCM_GamepadOption06",
+              "$PM_MCM_GamepadOption07",
+              "$PM_MCM_GamepadOption08",
+              "$PM_MCM_GamepadOption09",
+              "$PM_MCM_GamepadOption10",
+              "$PM_MCM_GamepadOption11",
+              "$PM_MCM_GamepadOption12",
+              "$PM_MCM_GamepadOption13",
+              "$PM_MCM_GamepadOption14",
+              "$PM_MCM_GamepadOption15",
+              "$PM_MCM_GamepadOption16"
             ]
           }
         },
         {
           "type": "dropdown",
           "id": "iNextTabController:Controls",
-          "text": "Next tab",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_NextTab_Key_Text",
+          "help": "$PM_MCM_Extra015",
           "valueOptions": {
             "sourceType": "ModSettingInt",
             "options": [
-              "Unbound",
-              "D-pad Up",
-              "D-pad Down",
-              "D-pad Left",
-              "D-pad Right",
-              "Start / Options",
-              "Back / Touchpad",
-              "Left stick press",
-              "Right stick press",
-              "LB / L1",
-              "RB / R1",
-              "A / Cross",
-              "B / Circle",
-              "X / Square",
-              "Y / Triangle",
-              "LT / L2",
-              "RT / R2"
+              "$PM_MCM_GamepadOption00",
+              "$PM_MCM_GamepadOption01",
+              "$PM_MCM_GamepadOption02",
+              "$PM_MCM_GamepadOption03",
+              "$PM_MCM_GamepadOption04",
+              "$PM_MCM_GamepadOption05",
+              "$PM_MCM_GamepadOption06",
+              "$PM_MCM_GamepadOption07",
+              "$PM_MCM_GamepadOption08",
+              "$PM_MCM_GamepadOption09",
+              "$PM_MCM_GamepadOption10",
+              "$PM_MCM_GamepadOption11",
+              "$PM_MCM_GamepadOption12",
+              "$PM_MCM_GamepadOption13",
+              "$PM_MCM_GamepadOption14",
+              "$PM_MCM_GamepadOption15",
+              "$PM_MCM_GamepadOption16"
             ]
           }
         },
         {
           "type": "dropdown",
           "id": "iPreviousTabController:Controls",
-          "text": "Previous tab",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_PreviousTab_Key_Text",
+          "help": "$PM_MCM_Extra016",
           "valueOptions": {
             "sourceType": "ModSettingInt",
             "options": [
-              "Unbound",
-              "D-pad Up",
-              "D-pad Down",
-              "D-pad Left",
-              "D-pad Right",
-              "Start / Options",
-              "Back / Touchpad",
-              "Left stick press",
-              "Right stick press",
-              "LB / L1",
-              "RB / R1",
-              "A / Cross",
-              "B / Circle",
-              "X / Square",
-              "Y / Triangle",
-              "LT / L2",
-              "RT / R2"
+              "$PM_MCM_GamepadOption00",
+              "$PM_MCM_GamepadOption01",
+              "$PM_MCM_GamepadOption02",
+              "$PM_MCM_GamepadOption03",
+              "$PM_MCM_GamepadOption04",
+              "$PM_MCM_GamepadOption05",
+              "$PM_MCM_GamepadOption06",
+              "$PM_MCM_GamepadOption07",
+              "$PM_MCM_GamepadOption08",
+              "$PM_MCM_GamepadOption09",
+              "$PM_MCM_GamepadOption10",
+              "$PM_MCM_GamepadOption11",
+              "$PM_MCM_GamepadOption12",
+              "$PM_MCM_GamepadOption13",
+              "$PM_MCM_GamepadOption14",
+              "$PM_MCM_GamepadOption15",
+              "$PM_MCM_GamepadOption16"
             ]
           }
         },
         {
           "type": "dropdown",
           "id": "iFreezeTimeController:Controls",
-          "text": "Toggle time freeze",
-          "help": "Active only inside Photo Mode. Camera movement follows the game free-camera controls.",
+          "text": "$PM_FreezeTime",
+          "help": "$PM_MCM_Extra017",
           "valueOptions": {
             "sourceType": "ModSettingInt",
             "options": [
-              "Unbound",
-              "D-pad Up",
-              "D-pad Down",
-              "D-pad Left",
-              "D-pad Right",
-              "Start / Options",
-              "Back / Touchpad",
-              "Left stick press",
-              "Right stick press",
-              "LB / L1",
-              "RB / R1",
-              "A / Cross",
-              "B / Circle",
-              "X / Square",
-              "Y / Triangle",
-              "LT / L2",
-              "RT / R2"
+              "$PM_MCM_GamepadOption00",
+              "$PM_MCM_GamepadOption01",
+              "$PM_MCM_GamepadOption02",
+              "$PM_MCM_GamepadOption03",
+              "$PM_MCM_GamepadOption04",
+              "$PM_MCM_GamepadOption05",
+              "$PM_MCM_GamepadOption06",
+              "$PM_MCM_GamepadOption07",
+              "$PM_MCM_GamepadOption08",
+              "$PM_MCM_GamepadOption09",
+              "$PM_MCM_GamepadOption10",
+              "$PM_MCM_GamepadOption11",
+              "$PM_MCM_GamepadOption12",
+              "$PM_MCM_GamepadOption13",
+              "$PM_MCM_GamepadOption14",
+              "$PM_MCM_GamepadOption15",
+              "$PM_MCM_GamepadOption16"
             ]
           }
         }

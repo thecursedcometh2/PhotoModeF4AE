@@ -117,3 +117,9 @@ its mouse-input guard remains active. Exiting Photo Mode removes its contributio
 Temporary camera tracing, per-slider diagnostics and counters have been removed.
 Normal startup and error logging remain. Windows regression checks cover both
 SAM-style replacement and vanilla getters; see TESTING.md for validation details.
+
+MCM labels reuse the original mod's `$PM_...` translation keys. Install existing
+`PhotoMode_<LANGUAGE>.txt` translations over this package as usual. Shipped UTF-16
+English strings provide fallback for newer controls; older translations need not
+be complete. The plugin loads these files into Scaleform without requiring an ESP.
+Settings IDs, bindings, numeric ranges and the optional global hotkey are unchanged.
