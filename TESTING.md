@@ -101,3 +101,19 @@ establish which other plugin, if any, selected the previous procedure token.
 In game: retry the same startup/save with Photo Mode enabled, then test focus
 loss/return, menus, Photo Mode and SAM. Keep the normal DLL dependency set for an
 existing save; stripping every F4SE plugin is not an equivalent load test.
+
+## Original MCM translations (2.1.10)
+
+The original config.json and UTF-16 English translation file were supplied by the
+user. Matching labels/help/options now reuse their exact original keys; modern
+controls have separate English fallback keys. Existing setting IDs/types, ranges,
+keybind actions and the optional ESP remain unchanged. The provided English file
+is included, with additional modern-control strings. CommonLib's translator file
+loader registers English then the selected language with Scaleform independently
+of active ESP translation loading. Tests check all displayed keys have English
+values and validate the existing MCM contract/package layout.
+
+In game, test EN and an existing original-mod language file, with and without
+PhotoMode.esp. Open every MCM page and options list; original entries should use
+that language, missing new keys should remain English, and controls should still
+apply/persist. Native build checks do not certify the in-game translated UI.
