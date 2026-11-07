@@ -26,6 +26,7 @@ namespace Translation
 		}
 
 	private:
+        std::string gameLanguage{ "EN" };
 		StringMap<std::string> translationMap{};
         std::map<std::string, std::string, std::less<>> missingTranslations;
 	};

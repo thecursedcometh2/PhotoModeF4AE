@@ -59,6 +59,13 @@ def source_bundle(output):
             archive.write(lock, 'PhotoModeF4/xmake-requires.lock')
         manifest = json.loads((root / 'scripts/dependency_sources.json').read_text())
         for dependency in manifest:
+            local_path = dependency.get('path')
+            if local_path:
+                data = (root / local_path).read_bytes()
+                if hashlib.sha256(data).hexdigest() != dependency['sha256']:
+                    raise RuntimeError(f'Local archive SHA256 mismatch: {local_path}')
+                archive.writestr('dependency-sources/' + dependency['name'] + '-' + dependency['urls'][0].rsplit('/', 1)[-1], data)
+                continue
             errors = []
             for url in dependency['urls']:
                 try:

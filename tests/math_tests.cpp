@@ -1,4 +1,5 @@
 #include "ImageMath.h"
+#include "TranslationLanguage.h"
 #include "MCMKey.h"
 #include "PhotoModeInputPolicy.h"
 #include "ScreenshotFiles.h"
@@ -12,6 +13,29 @@
 
 int main()
 {
+    struct LanguageSetting {
+        std::string_view value;
+        std::string_view GetString() const { return value; }
+    };
+    int lookups = 0;
+    const auto missingLanguage = [&lookups](std::string_view key) -> const LanguageSetting* {
+        assert(key == "sLanguage:General");
+        ++lookups;
+        return nullptr;
+    };
+    assert(Translation::ResolveGameLanguage(missingLanguage) == "EN" && lookups == 1);
+    LanguageSetting languageSetting{""};
+    const auto lookup = [&languageSetting](std::string_view) { return &languageSetting; };
+    assert(Translation::ResolveGameLanguage(lookup) == "EN");
+    languageSetting.value = "en";
+    assert(Translation::ResolveGameLanguage(lookup) == "EN");
+    languageSetting.value = "de";
+    assert(Translation::ResolveGameLanguage(lookup) == "DE");
+    languageSetting.value = "esmx";
+    assert(Translation::ResolveGameLanguage(lookup) == "ESMX");
+    languageSetting.value = "FR";
+    assert(Translation::ResolveGameLanguage(lookup) == "FR");
+
     assert(PhotoMode::ParseMCMKey("82,0", false) == 82);
     assert(PhotoMode::ParseMCMKey("32", false) == 32);
     assert(PhotoMode::ParseMCMKey("0,0", false) == 0);

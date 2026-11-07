@@ -1,10 +1,11 @@
 #include "Translation.h"
+#include "TranslationLanguage.h"
 
 namespace Translation
 {
 	std::string Manager::GetGameLanguage()
 	{
-		return string::toupper(RE::GetINISetting("sLanguage:General")->GetString());
+		return ResolveGameLanguage([](std::string_view name) { return RE::GetINISetting(name); });
 	}
 
 	void Manager::BuildTranslationMap()
@@ -13,7 +14,8 @@ namespace Translation
         if (!LoadTranslation(english)) {
             logger::info("Translation file {} unavailable; using built-in English defaults", english.string());
         }
-        const auto language = GetGameLanguage();
+        gameLanguage = GetGameLanguage();
+        const auto& language = gameLanguage;
         if (language != "EN") {
             const auto localized = std::filesystem::path(std::format(R"(Data\Interface\Translations\PhotoMode_{}.txt)", language));
             if (!LoadTranslation(localized)) logger::info("Translation file {} unavailable; keeping English defaults", localized.string());
@@ -79,7 +81,10 @@ namespace Translation
         }
 
         translator->AddTranslationsFile("Interface\\Translations\\PhotoMode_EN.txt");
-        if (GetGameLanguage() != "EN") translator->AddTranslationsMod("PhotoMode");
+        if (gameLanguage != "EN") {
+            const auto localized = std::format("Interface\\Translations\\PhotoMode_{}.txt", gameLanguage);
+            translator->AddTranslationsFile(localized.c_str());
+        }
 
         auto FetchTranslation = [this](RE::BSScaleformTranslator* a_trns, const wchar_t* a_key) {
 			auto it = a_trns->translator.translationMap.find(a_key);
