@@ -81,3 +81,14 @@ the installed binary's replacement getter. Its behavior is established by the
 user's 1.11.240 trace (ScreenArcherMenu.dll+62550), not attributed to that source
 revision. The fix captures the current slot at runtime; that observed DLL offset
 is documentation only and is never used as a dependency address.
+
+## SRELL archive availability
+
+The upstream SRELL 4.063 URLs now return HTML rather than the ZIP.
+`vendor/srell-4.063.zip` preserves the original source archive recovered from
+the successful 2.1.10 corresponding-source bundle. Its SHA256 remains
+`15aa0e193bace7677f1a4a7fe75071b1a95b64d45cd67ea2a23d0a48ce5911ff`,
+identical to the pinned XMake recipe; no dependency code or checksum changed.
+CI and the documented build command configure XMake's package search directory
+to use this archive. Source packaging verifies the same hash locally. The archive
+contains the upstream BSD-2-Clause notice, also retained in `licenses/SRELL-BSD.txt`.

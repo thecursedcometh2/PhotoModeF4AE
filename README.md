@@ -48,6 +48,7 @@ Use VS2022 C++ tools and Windows SDK, XMake **3.0.3**, Git and Python 3:
 
 ```powershell
 git submodule update --init --recursive
+xmake g --pkg_searchdirs="$((Get-Location).Path)/vendor"
 xmake f -p windows -a x64 -m releasedbg --toolchain=msvc -y
 xmake -y -vD
 python scripts/package_release.py --dll build/windows/x64/releasedbg/po3_PhotoModeF4.dll --pdb build/windows/x64/releasedbg/po3_PhotoModeF4.pdb --output dist --source-bundle

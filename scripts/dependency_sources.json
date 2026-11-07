@@ -26,7 +26,8 @@
       "https://akenotsuki.com/misc/srell/srell4_063.zip",
       "https://assets-akenotsuki.pages.dev/misc/srell/releases/srell4_063.zip"
     ],
-    "sha256": "15aa0e193bace7677f1a4a7fe75071b1a95b64d45cd67ea2a23d0a48ce5911ff"
+    "sha256": "15aa0e193bace7677f1a4a7fe75071b1a95b64d45cd67ea2a23d0a48ce5911ff",
+    "path": "vendor/srell-4.063.zip"
   },
   {
     "name": "unordered_dense",

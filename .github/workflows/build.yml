@@ -45,7 +45,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./math_tests.exe
       - name: Configure
-        run: xmake f -p windows -a x64 -m releasedbg --toolchain=msvc -y -vD
+        run: |
+          xmake g --pkg_searchdirs="${{ github.workspace }}/vendor"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          xmake f -p windows -a x64 -m releasedbg --toolchain=msvc -y -vD
       - name: Compile and link
         run: xmake -y -vD
       - name: Windows window-procedure forwarding checks
