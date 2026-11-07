@@ -117,3 +117,17 @@ In game, test EN and an existing original-mod language file, with and without
 PhotoMode.esp. Open every MCM page and options list; original entries should use
 that language, missing new keys should remain English, and controls should still
 apply/persist. Native build checks do not certify the in-game translated UI.
+
+## Missing language setting (2.1.11)
+
+A supplied 2.1.10 crash occurs at Photo Mode RVA 0x554DD, reading [RAX+8]
+with RAX=0 immediately after GetINISetting("sLanguage:General"). The matching PDB
+places it inside Translation::Manager::GetGameLanguage; caller RVAs map to
+BuildTranslationMap and the F4SE data-ready message handler. The plugin log stops
+after reading PhotoMode_EN.txt, consistent with this path.
+
+The resolver now handles a missing/empty setting with EN, preserves and normalizes
+non-English codes, and caches one resolved language for both file and Scaleform
+loading. Portable tests invoke the production resolver with null, empty, lower/
+uppercase and multi-character language values. In game, retry affected new-game
+and save-load paths and existing translations; actual game confirmation is pending.

@@ -203,3 +203,12 @@ This is a concrete forwarding defect supported by the crash, not proof that
 DearModdingUI, mirrors, Community Shaders or another scanned module is at fault.
 Native window-chain checks validate the API correction; game confirmation remains
 pending. Camera roll and screenshot behavior are unchanged.
+
+## Language null dereference (2.1.11)
+
+The exact 2.1.10 PDB maps RVA 0x554DD to GetGameLanguage, 0x55212 to
+BuildTranslationMap and 0x2CD53 to MessageHandler. Disassembly shows the null
+lookup result dereferenced at +8, matching the supplied crash registers and log.
+Guard the lookup and empty value with an English fallback. Resolve once and reuse
+that language for localized ImGui and Scaleform files, avoiding a second lookup
+through the SDK convenience loader. No hook or game layout changes are involved.
