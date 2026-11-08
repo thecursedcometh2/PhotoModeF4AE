@@ -85,6 +85,7 @@ namespace ImGui::Renderer
 		{
 			if (initialized.load()) {
 				const auto photoMode = MANAGER(PhotoMode);
+                photoMode->TracePendingExit();
 
 				if (!photoMode->IsActive() || !photoMode->OnFrameUpdate()) {
 					return func(a_menu);

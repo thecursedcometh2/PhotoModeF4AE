@@ -212,3 +212,15 @@ lookup result dereferenced at +8, matching the supplied crash registers and log.
 Guard the lookup and empty value with an English fallback. Resolve once and reuse
 that language for localized ImGui and Scaleform files, avoiding a second lookup
 through the SDK convenience loader. No hook or game layout changes are involved.
+
+## Third-person movement investigation (2.1.12)
+
+The user's first-person/third-person comparison indicates mode-specific stale
+locomotion state; no runtime trace yet identifies its source. Guard duplicate
+lifecycle calls and track ownership of the free-camera transition, using the
+existing CommonLib `ToggleFreeCameraMode` API only while still in free camera.
+This avoids an unconditional toggle re-entering free camera after another menu
+has already left it. No new hook, relocation, offset, graph variable write or
+SAM dependency is introduced. Read-only state traces use named SDK fields in
+PlayerControls, ThirdPersonState and BSInputEnableManager. Neither these lifecycle
+fixes nor a successful native build establish that the reported lock is fixed.

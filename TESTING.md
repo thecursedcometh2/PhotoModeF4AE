@@ -131,3 +131,32 @@ non-English codes, and caches one resolved language for both file and Scaleform
 loading. Portable tests invoke the production resolver with null, empty, lower/
 uppercase and multi-character language values. In game, retry affected new-game
 and save-load paths and existing translations; actual game confirmation is pending.
+
+## Intermittent third-person movement lock (2.1.12 diagnostic build)
+
+Reported on 2.1.9: after some Photo Mode exits, first-person movement works, but
+third person retains the standing/running/crouching/sprinting state from first
+person and cannot change it. SAM involvement is unknown. This report is not yet
+reproduced here, and the log supplied contains initialization only.
+
+The build prevents repeated activation/deactivation from replacing saved state
+or toggling the camera twice, and only toggles free camera off if Photo Mode
+entered it and it is still current. These lifecycle corrections are not proof
+of a fix for the reported movement problem. It does not alter animation graph
+variables, clear third-party input layers, or force all player controls on.
+
+On a disposable save, compare repeated entry/exit from first and third person,
+stationary and moving, keyboard and controller, freeze time enabled/disabled,
+Pause Menu and hotkey entry, Escape/hotkey exit, and SAM installed/open/absent.
+Also test entering when TFC was already active: exit must preserve it. If another
+menu changes the camera during Photo Mode, exit must not toggle free camera on.
+Try repeated Pause Menu activation while Photo Mode is already active.
+
+After exiting, wait at least two seconds. If movement sticks, switch to first
+person, move, switch back, and describe exactly what persists. Supply the full
+Photo Mode log (with `Movement trace` lines before entry, before/after exit and
+two seconds later) and the SAM version/session sequence. Compare camera flags,
+input cache flags, disabled handler indices and first/third-person movement graph
+indices. These fields are read-only diagnostics; engine values and animations
+still require an affected installation for interpretation. Do not overwrite your
+only save while testing; existing stuck saves are not claimed repaired.

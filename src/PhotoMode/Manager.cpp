@@ -9,6 +9,7 @@
 #include "Settings.h"
 
 #include "Input.h"
+#include <chrono>
 
 namespace PhotoMode
 {
@@ -86,6 +87,9 @@ namespace PhotoMode
 
 	void Manager::Activate()
 	{
+        if (activated) return;
+        exitTraceTime.reset();
+        LogMovementState("before entry");
         Settings::GetSingleton()->LoadMCMSettings();
 		cameraTab.GetOriginalState();
 		timeTab.GetOriginalState();
@@ -109,8 +113,10 @@ namespace PhotoMode
         RE::BGSSaveLoadManager::GetSingleton()->savingAllowed = false;
 
 		// toggle freecam
+        enteredFreeCamera = false;
 		if (originalcameraState != RE::CameraState::kFree) {
 			pcCamera->ToggleFreeCameraMode(false);
+            enteredFreeCamera = pcCamera->currentState && pcCamera->currentState->id == RE::CameraState::kFree;
 		}
 
         EnsureViewRollHook();
@@ -202,6 +208,8 @@ namespace PhotoMode
 
 	void Manager::Deactivate()
 	{
+        if (!activated) return;
+        LogMovementState("before exit");
         MANAGER(Input)->ReleaseVerticalMovement();
 		Revert(true);
 
@@ -210,9 +218,11 @@ namespace PhotoMode
 		cachedCharacter = nullptr;
 
 		// reset camera
-		if (originalcameraState != RE::CameraState::kFree) {
-			RE::PlayerCamera::GetSingleton()->ToggleFreeCameraMode(false);
-		}
+		if (const auto camera = RE::PlayerCamera::GetSingleton();
+            enteredFreeCamera && camera && camera->currentState && camera->currentState->id == RE::CameraState::kFree) {
+            camera->ToggleFreeCameraMode(false);
+        }
+        enteredFreeCamera = false;
 
 		// reset controls
 		if (allowTextInput) {
@@ -246,10 +256,52 @@ namespace PhotoMode
 		MANAGER(Input)->ResetInputDevices();
 
 		activated = false;
+        LogMovementState("after exit");
+        exitTraceTime = std::chrono::steady_clock::now() + std::chrono::seconds(2);
 		if (activeGlobal) {
 			activeGlobal->value = 0.0f;
 		}
 	}
+
+    void Manager::TracePendingExit()
+    {
+        if (!activated && exitTraceTime && std::chrono::steady_clock::now() >= *exitTraceTime) {
+            exitTraceTime.reset();
+            LogMovementState("two seconds after exit");
+        }
+    }
+
+    void Manager::LogMovementState(std::string_view stage) const
+    {
+        const auto camera = RE::PlayerCamera::GetSingleton();
+        const auto state = camera ? camera->currentState.get() : nullptr;
+        logger::info("Movement trace {}: active={}, camera={}, enteredFree={}, SAM={}",
+            stage, activated, state ? std::to_underlying(state->id.get()) : -1,
+            enteredFreeCamera, IsScreenArcherMenuOpen());
+        if (camera) {
+            const auto third = static_cast<const RE::ThirdPersonState*>(camera->cameraStates[RE::CameraState::k3rdPerson].get());
+            if (third) logger::info("Movement trace third person: freeRotation={}, POVheld={}, animator={}, preserveRotation={}",
+                third->freeRotationEnabled, third->togglePOVPressRegistered, third->animatorMode, third->preserveRotation);
+        }
+        if (const auto controls = RE::PlayerControls::GetSingleton()) {
+            const auto& data = controls->data;
+            logger::info("Movement trace controls: blocked={}, move=({}, {}), previous=({}, {}), autoMove={}, POV={}, vanity={}, heldCheck={}, heldRelease={}, graphThird={}, graphFirst={}",
+                controls->blockPlayerInput, data.moveInputVec.x, data.moveInputVec.y,
+                data.prevMoveVec.x, data.prevMoveVec.y, data.autoMove, data.togglePOV,
+                data.vanityModeEnabled, data.checkHeldStates, data.setupHeldStatesForRelease,
+                controls->topGraphPoint[0], controls->topGraphPoint[1]);
+            for (std::size_t i = 0; i < controls->handlers.size(); ++i) {
+                if (controls->handlers[i] && !controls->handlers[i]->inputEventHandlingEnabled)
+                    logger::info("Movement trace disabled player handler index={}", i);
+            }
+        }
+        if (const auto manager = RE::BSInputEnableManager::GetSingleton()) {
+            RE::BSAutoLock lock(manager->cacheLock);
+            logger::info("Movement trace input cache: user={:08X}, other={:08X}, forcedUser={:08X}, forcedOther={:08X}",
+                manager->cachedInputUserEventsFlags.get(), manager->cachedOtherInputEventsFlags.get(),
+                manager->forceEnableInputUserEventsFlags.get(), manager->forceOtherInputEventsFlags.get());
+        }
+    }
 
 	bool Manager::ToggleActive()
 	{
