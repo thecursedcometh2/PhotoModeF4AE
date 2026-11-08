@@ -298,8 +298,8 @@ namespace PhotoMode
         if (const auto manager = RE::BSInputEnableManager::GetSingleton()) {
             RE::BSAutoLock lock(manager->cacheLock);
             logger::info("Movement trace input cache: user={:08X}, other={:08X}, forcedUser={:08X}, forcedOther={:08X}",
-                manager->cachedInputUserEventsFlags.get(), manager->cachedOtherInputEventsFlags.get(),
-                manager->forceEnableInputUserEventsFlags.get(), manager->forceOtherInputEventsFlags.get());
+                static_cast<std::uint32_t>(manager->cachedInputUserEventsFlags.get()), static_cast<std::uint32_t>(manager->cachedOtherInputEventsFlags.get()),
+                static_cast<std::uint32_t>(manager->forceEnableInputUserEventsFlags.get()), static_cast<std::uint32_t>(manager->forceOtherInputEventsFlags.get()));
         }
     }
 
