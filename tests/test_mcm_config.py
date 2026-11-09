@@ -78,6 +78,25 @@ class MCMConfig(unittest.TestCase):
 
 
 class MCMTranslations(unittest.TestCase):
+    def test_engine_translation_files(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('mcm_fallback', ROOT / 'scripts/update_mcm_fallback.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.assertEqual(module.FALLBACK.read_bytes(), module.expected_fallback())
+        for path in (module.ENGLISH, module.FALLBACK):
+            data = path.read_bytes()
+            self.assertTrue(data.startswith(b'\xff\xfe'))
+            keys = set()
+            for line in data.decode('utf-16').splitlines():
+                if not line: continue
+                key, value = line.split('\t', 1)
+                self.assertTrue(key.startswith('$'), line)
+                self.assertTrue(value.strip(), key)
+                self.assertNotIn(key, keys)
+                keys.add(key)
+
+
     def test_all_display_keys_have_english_fallback(self):
         data = (ROOT / 'Data/Interface/Translations/PhotoMode_EN.txt').read_bytes()
         self.assertTrue(data.startswith(b'\xff\xfe'))

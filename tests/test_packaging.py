@@ -29,6 +29,8 @@ class Packaging(unittest.TestCase):
                     self.assertEqual(archive.read(path), (ROOT / path).read_bytes())
                 self.assertFalse(any(name.startswith('Data/MCM/Settings/') for name in archive.namelist()))
                 self.assertIn('licenses/CommonLibF4-EXCEPTIONS.txt', archive.namelist())
+                path = 'Data/Interface/Translations/PhotoMode_MCMFallback_EN.txt'
+                self.assertEqual(archive.read(path), (ROOT / path).read_bytes())
                 self.assertFalse(any('ImGuiFonts' in name or name.endswith('.pdb') for name in archive.namelist()))
 
     def test_missing_artifact_fails(self):

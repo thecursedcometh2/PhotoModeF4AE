@@ -10,6 +10,7 @@ namespace Translation
 
 	void Manager::BuildTranslationMap()
 	{
+        LoadTranslation(R"(Data\Interface\Translations\PhotoMode_MCMFallback_EN.txt)");
         const std::filesystem::path english(R"(Data\Interface\Translations\PhotoMode_EN.txt)");
         if (!LoadTranslation(english)) {
             logger::info("Translation file {} unavailable; using built-in English defaults", english.string());
@@ -80,6 +81,7 @@ namespace Translation
             return;
         }
 
+        translator->AddTranslationsFile("Interface\\Translations\\PhotoMode_MCMFallback_EN.txt");
         translator->AddTranslationsFile("Interface\\Translations\\PhotoMode_EN.txt");
         if (gameLanguage != "EN") {
             const auto localized = std::format("Interface\\Translations\\PhotoMode_{}.txt", gameLanguage);
