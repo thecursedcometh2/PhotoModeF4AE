@@ -14,7 +14,7 @@ namespace Console
 		{
 			static auto help = []() {
 				std::string buf;
-				buf += "PhotoMode: toggle Photo Mode; PhotoMode 1: explicitly try clearing a stuck player sync flag in third person\n";
+				buf += "PhotoMode: toggle. PhotoMode 1: fix stuck third-person movement.\n";
 				return buf;
 			}();
 			return help;
@@ -36,12 +36,12 @@ namespace Console
             } graph{player};
             const auto result = PhotoMode::ClearPlayerSync(graph, permitted);
             constexpr const char* messages[] = {
-                "Sync recovery refused: exit Photo Mode/SAM and use ordinary third person outside an interaction or animation-driven state.",
-                "Sync recovery: required graph variable unavailable; recovery not confirmed.",
-                "Sync recovery: bIsSynced is already false; no change made.",
-                "Sync recovery: graph setter failed; recovery not confirmed.",
-                "Sync recovery: bIsSynced is still true after the write.",
-                "Sync recovery: bIsSynced now reads false. Close the console and test movement; this does not confirm a repair."
+                "Third Person Fix unavailable. Use normal third person. Exit Photo Mode and SAM.",
+                "Third Person Fix: animation data unavailable.",
+                "Third Person Fix: no change needed.",
+                "Third Person Fix failed.",
+                "Third Person Fix: sync flag is still set.",
+                "Third Person Fix applied. Test movement."
             };
             const auto message = messages[static_cast<unsigned>(result)];
             logger::info("{}", message);

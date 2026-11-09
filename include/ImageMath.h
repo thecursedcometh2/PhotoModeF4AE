@@ -21,8 +21,7 @@ namespace ImageMath
             return false;
         }
         intensity = std::clamp(intensity, 0.0f, 1.0f);
-        // Sequential processing avoids per-shot thread creation, zero-concurrency
-        // division, lost remainder rows, and exceptions while threads are active.
+        // Process every row synchronously. No worker can outlive the image.
         for (std::size_t y = 0; y < height; ++y) {
             auto* dst = base + y * basePitch;
             const auto* src = overlay + y * overlayPitch;

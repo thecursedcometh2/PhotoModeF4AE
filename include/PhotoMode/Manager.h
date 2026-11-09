@@ -1,8 +1,5 @@
 #pragma once
 
-#include <chrono>
-#include <optional>
-
 #include "ImGui/Fonts/IconsFontAwesome6.h"
 
 #include "Tabs/Camera.h"
@@ -48,15 +45,11 @@ namespace PhotoMode
 
 		void Draw();
 		bool OnFrameUpdate();
-        void TracePendingExit();
 
 		void                              OnDataLoad();
 		std::pair<ImGui::Texture*, float> GetOverlay() const;
 
 	private:
-        void LogMovementState(std::string_view stage) const;
-        std::optional<std::chrono::steady_clock::time_point> exitTraceTime;
-        unsigned exitTraceSamplesRemaining{};
         bool enteredFreeCamera{ false };
         bool originalSavingAllowed{ true };
         std::array<bool, 5> originalHandlerStates{};

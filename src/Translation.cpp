@@ -13,13 +13,13 @@ namespace Translation
         LoadTranslation(R"(Data\Interface\Translations\PhotoMode_MCMFallback_EN.txt)");
         const std::filesystem::path english(R"(Data\Interface\Translations\PhotoMode_EN.txt)");
         if (!LoadTranslation(english)) {
-            logger::info("Translation file {} unavailable; using built-in English defaults", english.string());
+            logger::info("Missing translation file {}. Using English.", english.string());
         }
         gameLanguage = GetGameLanguage();
         const auto& language = gameLanguage;
         if (language != "EN") {
             const auto localized = std::filesystem::path(std::format(R"(Data\Interface\Translations\PhotoMode_{}.txt)", language));
-            if (!LoadTranslation(localized)) logger::info("Translation file {} unavailable; keeping English defaults", localized.string());
+            if (!LoadTranslation(localized)) logger::info("Missing translation file {}. Keeping English.", localized.string());
         }
 
 		AddGameTranslationStrings();
@@ -44,7 +44,7 @@ namespace Translation
 		// check if the BOM is UTF-16
 		constexpr wchar_t BOM_UTF16LE = 0xFEFF;
 		if (filestream.get() != BOM_UTF16LE) {
-			logger::info("\tBOM Error, file must be encoded in UCS-2 LE.");
+			logger::info("Translation file needs UTF-16LE with a BOM.");
 			return false;
 		}
 
@@ -77,7 +77,7 @@ namespace Translation
 		const auto translator = loader ? static_cast<RE::BSScaleformTranslator*>(loader->GetStateAddRef(Scaleform::GFx::State::StateType::kTranslator)) : nullptr;
 
 		if (!translator) {
-            logger::error("Scaleform translator unavailable; using file translations");
+            logger::error("MCM translator unavailable. Keeping file translations.");
             return;
         }
 

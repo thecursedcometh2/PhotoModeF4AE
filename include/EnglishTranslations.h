@@ -1,7 +1,7 @@
 #pragma once
 #include <utility>
 
-// Project-owned English defaults; external translations override these strings.
+// English defaults. Translation files override these.
 namespace Translation {
 inline constexpr std::pair<const char*, const char*> EnglishDefaults[] = {
     {"$EXIT", "Exit"},

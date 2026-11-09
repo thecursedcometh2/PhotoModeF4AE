@@ -173,7 +173,7 @@ namespace ImGui
 				CloseCurrentPopup();
 				RE::UIUtils::PlayMenuSound("UIMenuOK");
 			}
-			// Using Shortcut would make the first Esc clear input (even if empty) and the second close the popup.
+			// Shortcut would consume the first Escape press.
 			else if (IsKeyPressed(ImGuiKey_Escape, repeat) || IsKeyPressed(ImGuiKey_NavGamepadCancel)) {
 				value_changed = false;
 				CloseCurrentPopup();
@@ -254,7 +254,7 @@ namespace ImGui
 		if (format == nullptr)
 			format = DataTypeGetInfo(data_type)->PrintFmt;
 
-		// Display value using user-provided display format so user can add prefix/suffix/decorations to the value.
+		// Use the caller's display format.
 		char        value_buf[64];
 		const char* value_buf_end = value_buf + DataTypeFormatString(value_buf, IM_ARRAYSIZE(value_buf), data_type, p_data, format);
 
@@ -317,7 +317,7 @@ namespace ImGui
 				if ((clicked && g.IO.KeyCtrl) || (g.NavActivateId == id && (g.NavActivateFlags & ImGuiActivateFlags_PreferInput)))
 					temp_input_is_active = true;
 
-			// Store initial value (not used by main lib but available as a convenience but some mods e.g. to revert)
+			// Keep the initial value for reset.
 			if (make_active)
 				memcpy(&g.ActiveIdValueOnActivation, p_data, DataTypeGetInfo(data_type)->Size);
 

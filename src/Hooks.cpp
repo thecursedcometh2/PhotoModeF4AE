@@ -33,14 +33,14 @@ namespace PhotoMode
             const auto live = Hooks::ReadPointer(reinterpret_cast<std::uintptr_t>(camera->currentState.get()));
             static REL::Relocation<std::uintptr_t> expected{ RE::VTABLE::FreeCameraState[0] };
             if (!live || *live != expected.address()) {
-                if (!reportedFailure) logger::error("View roll: unexpected live free-camera vtable; refusing an unverified slot");
+                if (!reportedFailure) logger::error("View roll unavailable: unknown camera vtable.");
                 reportedFailure = true;
                 return;
             }
             constexpr std::size_t slot = 0x0C;
             const auto result = hook.Install(*live + slot * sizeof(void*), &thunk);
             if (result != Hooks::ChainResult::installed && result != Hooks::ChainResult::alreadyInstalled && !reportedFailure) {
-                logger::error("View roll chain unavailable (status {}); refusing to re-chain a later wrapper to avoid recursion",
+                logger::error("View roll chain failed ({}). Skipping a later hook to avoid recursion.",
                     std::to_underlying(result));
                 reportedFailure = true;
             }
@@ -168,7 +168,7 @@ namespace Screenshot
                 // Never fall through to an unchecked writer after a custom save
                 // failure: it could reuse the same stale vanilla index.
                 RE::SendHUDMessage::ShowHUDMessage(saved ? "$PM_ScreenshotNotif"_T : "$PM_ScreenshotFailed"_T, nullptr, true, false);
-                if (!saved) logger::error("Photo Mode screenshot was not saved; vanilla fallback suppressed to protect existing photos");
+                if (!saved) logger::error("Photo not saved. Fallback skipped to protect existing photos.");
             }
 		}
 		static inline REL::Relocation<decltype(thunk)> func;

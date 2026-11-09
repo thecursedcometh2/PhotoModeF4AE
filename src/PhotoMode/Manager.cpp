@@ -9,7 +9,6 @@
 #include "Settings.h"
 
 #include "Input.h"
-#include <chrono>
 
 namespace PhotoMode
 {
@@ -88,8 +87,6 @@ namespace PhotoMode
 	void Manager::Activate()
 	{
         if (activated) return;
-        exitTraceTime.reset();
-        LogMovementState("before entry");
         Settings::GetSingleton()->LoadMCMSettings();
 		cameraTab.GetOriginalState();
 		timeTab.GetOriginalState();
@@ -108,7 +105,7 @@ namespace PhotoMode
 			hiddenUI = true;
 		}
 
-		// Preserve pre-existing restrictions owned by the game or another mod.
+		// Keep existing save restrictions.
         originalSavingAllowed = RE::BGSSaveLoadManager::GetSingleton()->savingAllowed;
         RE::BGSSaveLoadManager::GetSingleton()->savingAllowed = false;
 
@@ -209,7 +206,6 @@ namespace PhotoMode
 	void Manager::Deactivate()
 	{
         if (!activated) return;
-        LogMovementState("before exit");
         MANAGER(Input)->ReleaseVerticalMovement();
 		Revert(true);
 
@@ -256,88 +252,11 @@ namespace PhotoMode
 		MANAGER(Input)->ResetInputDevices();
 
 		activated = false;
-        LogMovementState("after exit");
-        exitTraceSamplesRemaining = 4;
-        exitTraceTime = std::chrono::steady_clock::now() + std::chrono::seconds(2);
 		if (activeGlobal) {
 			activeGlobal->value = 0.0f;
 		}
 	}
 
-    void Manager::TracePendingExit()
-    {
-        if (!activated && exitTraceTime && std::chrono::steady_clock::now() >= *exitTraceTime) {
-            exitTraceTime.reset();
-            LogMovementState("timed sample after exit");
-            if (--exitTraceSamplesRemaining != 0)
-                exitTraceTime = std::chrono::steady_clock::now() + std::chrono::seconds(5);
-        }
-    }
-
-    void Manager::LogMovementState(std::string_view stage) const
-    {
-        if (const auto tasks = F4SE::GetTaskInterface()) {
-            tasks->AddTask([requestedAt = std::string(stage)] {
-                const auto player = RE::PlayerCharacter::GetSingleton();
-                if (!player) return;
-                const auto camera = RE::PlayerCamera::GetSingleton();
-                const auto state = camera ? camera->currentState.get() : nullptr;
-                logger::info("Animation sample requested at '{}': sampled camera={}, actorFlags={:08X}, moveMode={}, forceRun={}, forceSneak={}, syncAnim={}, life={}, knock={}, interaction={}",
-                    requestedAt, state ? std::to_underlying(state->id.get()) : -1,
-                    static_cast<std::uint32_t>(player->boolFlags.get()),
-                    static_cast<unsigned>(player->moveMode), static_cast<unsigned>(player->forceRun),
-                    static_cast<unsigned>(player->forceSneak), static_cast<unsigned>(player->inSyncAnim),
-                    static_cast<unsigned>(player->lifeState), static_cast<unsigned>(player->knockState),
-                    static_cast<unsigned>(player->interactingState));
-                RE::BSTSmartPointer<RE::BSAnimationGraphManager> manager;
-                if (player->GetAnimationGraphManagerImpl(manager) && manager) {
-                    RE::BSAutoLock lock(manager->updateLock);
-                    logger::info("Animation sample manager: graphs={}, activeGraph={}", manager->graph.size(), manager->activeGraph);
-                } else {
-                    logger::info("Animation sample manager unavailable");
-                }
-                // Optional name probes: absent variables are not interpreted as false or zero.
-                for (const auto name : {"bAnimationDriven", "bMotionDriven", "bIsSynced"}) {
-                    bool value{};
-                    const bool found = player->GetGraphVariableImplBool(RE::BSFixedString(name), value);
-                    logger::info("Animation sample bool {}: available={}, value={}", name, found, value);
-                }
-                for (const auto name : {"Speed", "SpeedSampled", "Direction"}) {
-                    float value{};
-                    const bool found = player->GetGraphVariableImplFloat(RE::BSFixedString(name), value);
-                    logger::info("Animation sample float {}: available={}, value={}", name, found, value);
-                }
-            });
-        }
-        const auto camera = RE::PlayerCamera::GetSingleton();
-        const auto state = camera ? camera->currentState.get() : nullptr;
-        logger::info("Movement trace {}: active={}, camera={}, enteredFree={}, SAM={}",
-            stage, activated, state ? std::to_underlying(state->id.get()) : -1,
-            enteredFreeCamera, IsScreenArcherMenuOpen());
-        if (camera) {
-            const auto third = static_cast<const RE::ThirdPersonState*>(camera->cameraStates[RE::CameraState::k3rdPerson].get());
-            if (third) logger::info("Movement trace third person: freeRotation={}, POVheld={}, animator={}, preserveRotation={}",
-                third->freeRotationEnabled, third->togglePOVPressRegistered, third->animatorMode, third->preserveRotation);
-        }
-        if (const auto controls = RE::PlayerControls::GetSingleton()) {
-            const auto& data = controls->data;
-            logger::info("Movement trace controls: blocked={}, move=({}, {}), previous=({}, {}), autoMove={}, POV={}, vanity={}, heldCheck={}, heldRelease={}, graphThird={}, graphFirst={}",
-                controls->blockPlayerInput, data.moveInputVec.x, data.moveInputVec.y,
-                data.prevMoveVec.x, data.prevMoveVec.y, data.autoMove, data.togglePOV,
-                data.vanityModeEnabled, data.checkHeldStates, data.setupHeldStatesForRelease,
-                controls->topGraphPoint[0], controls->topGraphPoint[1]);
-            for (std::size_t i = 0; i < controls->handlers.size(); ++i) {
-                if (controls->handlers[i] && !controls->handlers[i]->inputEventHandlingEnabled)
-                    logger::info("Movement trace disabled player handler index={}", i);
-            }
-        }
-        if (const auto manager = RE::BSInputEnableManager::GetSingleton()) {
-            RE::BSAutoLock lock(manager->cacheLock);
-            logger::info("Movement trace input cache: user={:08X}, other={:08X}, forcedUser={:08X}, forcedOther={:08X}",
-                static_cast<std::uint32_t>(manager->cachedInputUserEventsFlags.get()), static_cast<std::uint32_t>(manager->cachedOtherInputEventsFlags.get()),
-                static_cast<std::uint32_t>(manager->forceEnableInputUserEventsFlags.get()), static_cast<std::uint32_t>(manager->forceOtherInputEventsFlags.get()));
-        }
-    }
 
 	bool Manager::ToggleActive()
 	{

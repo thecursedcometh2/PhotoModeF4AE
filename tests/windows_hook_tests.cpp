@@ -110,7 +110,7 @@ int main()
         require(REL::WriteSafeData(slot, reinterpret_cast<std::uintptr_t>(&photoGetter)), "restore fixture ownership");
         require(samChain.Restore() && Hooks::ReadPointer(slot) == reinterpret_cast<std::uintptr_t>(&samGetter), "cleanup must restore SAM, not vanilla");
 
-        // No-SAM installation: same code captures vanilla and applies exactly one contribution.
+        // Without SAM, chain vanilla once.
         require(REL::WriteSafeData(slot, vanilla), "reset vanilla fixture");
         currentChain = &vanillaChain;
         require(vanillaChain.Install(slot, &photoGetter) == Hooks::ChainResult::installed, "vanilla chain installation");

@@ -6,7 +6,7 @@
 
 namespace PhotoMode {
 // f4mcm keyinput/ModSettingString stores "virtual-key,modifier-mask".
-// In-mode bindings are single keys (allowModifierKeys=0); legacy i* keys remain supported.
+// Use single keys in Photo Mode. Keep support for legacy i* keys.
 inline std::optional<std::uint32_t> ParseMCMKey(std::string_view text, bool gamepad)
 {
     const auto comma = text.find(',');

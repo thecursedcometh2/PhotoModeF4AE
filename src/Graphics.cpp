@@ -17,9 +17,7 @@ namespace Texture
 
     HRESULT ToRGBA8(const DirectX::Image& source, DirectX::ScratchImage& output)
     {
-        // Treat sRGB SDR texels as encoded bytes during channel conversion.
-        // Otherwise Convert can decode sRGB and WIC FORCE_SRGB merely retags it,
-        // producing a dark PNG. No transfer change is needed for SDR capture.
+        // Keep encoded SDR colors during channel conversion. Decoding would darken the PNG.
         auto view = source;
         view.format = DirectX::MakeLinear(view.format);
         if (view.format == DXGI_FORMAT_R8G8B8A8_UNORM) {
@@ -68,14 +66,13 @@ namespace Texture
         }
         for (;;) {
             const auto path = Screenshot::NumberedPath(prefix, index);
-            // CREATE_NEW atomically refuses existing files, including concurrent
-            // shots and files added after the startup directory scan.
+            // CREATE_NEW protects existing files, including concurrent captures.
             const HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE | DELETE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
             if (file == INVALID_HANDLE_VALUE) {
                 const auto error = GetLastError();
                 if (error == ERROR_FILE_EXISTS || error == ERROR_ALREADY_EXISTS) {
                     if (index == std::numeric_limits<std::uint64_t>::max()) {
-                        logger::error("Screenshot numbering exhausted; existing photo preserved");
+                        logger::error("No screenshot numbers left. Existing photo kept.");
                         return false;
                     }
                     ++index;

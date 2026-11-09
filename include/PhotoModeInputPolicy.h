@@ -2,8 +2,7 @@
 #include <cstdint>
 
 namespace PhotoMode {
-// Track only movement synthesized by Photo Mode. Never reset another camera
-// state or a direction subsequently changed by another mod.
+// Track Photo Mode movement only. Leave later changes by other mods alone.
 class VerticalInputOwner {
 public:
     void Record(const void* state, std::int16_t direction)
