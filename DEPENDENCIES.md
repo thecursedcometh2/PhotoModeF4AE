@@ -92,3 +92,9 @@ identical to the pinned XMake recipe; no dependency code or checksum changed.
 CI and the documented build command configure XMake's package search directory
 to use this archive. Source packaging verifies the same hash locally. The archive
 contains the upstream BSD-2-Clause notice, also retained in `licenses/SRELL-BSD.txt`.
+
+CI installs host Meson 1.12.1, setuptools 80.9.0 and wheel 0.45.1 using exact
+wheel hashes from `scripts/ci-build-tools.txt`. This lets the pinned pkgconf recipe
+use the host Meson instead of downloading the XMake Python tool archive, whose
+upstream asset no longer matches its recipe checksum. Linked library revisions
+and checksums are unchanged; these Python packages are build tools only.
