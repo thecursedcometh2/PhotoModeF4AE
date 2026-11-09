@@ -181,3 +181,27 @@ repeat entry/exit from that perspective and move immediately after exit. Copy th
 full log before starting the second run and note which log represents which save
 and which actions got stuck. No console commands or saving are required. Re-enable
 Photo Mode to obtain these samples; other mod settings must match between runs.
+
+## Explicit sync recovery experiment (2.1.14)
+
+The paired 2.1.13 logs show bIsSynced=true in every affected third-person graph
+sample (activeGraph=0), false in its first-person samples (activeGraph=1), and
+false in both perspectives of the working new game. Forward input is recorded
+in affected third person, but sampled moveMode/Speed stay zero. This is a strong
+correlation, not proof of the original trigger or a verified recovery.
+
+On a disposable copy of the affected save, outside combat/paired animations/
+furniture, exit Photo Mode and SAM, switch to third person, open the console and
+run `PhotoMode 1` once. It changes only the player's bIsSynced graph variable via
+the existing CommonLib setter. It refuses the wrong camera, active Photo Mode/
+SAM, synced actor interaction/killmove, animation-driven locomotion, or unavailable
+required variables. No automatic reset occurs on entry, exit, load or new game.
+The setter may update multiple player graphs; it is not a third-person-only write.
+
+Record the console message, close the console and test starting/stopping/turning,
+then first/third-person switching. Send the full log and observed outcome. A false
+readback confirms only that the getter reads false, not that movement is repaired
+or stays repaired. Do not overwrite the original save. If movement works, save to
+a new slot and separately test reloading that slot; persistence is unverified.
+The no-argument `PhotoMode` command and MCM toggle must continue to work. Invalid
+actions must print usage without toggling or writing graph variables.

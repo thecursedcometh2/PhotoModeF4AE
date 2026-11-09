@@ -224,3 +224,16 @@ has already left it. No new hook, relocation, offset, graph variable write or
 SAM dependency is introduced. Read-only state traces use named SDK fields in
 PlayerControls, ThirdPersonState and BSInputEnableManager. Neither these lifecycle
 fixes nor a successful native build establish that the reported lock is fixed.
+
+## bIsSynced recovery experiment (2.1.14)
+
+Affected 2.1.13 third-person samples consistently expose bIsSynced=true, while
+working-new-game and affected first-person samples expose false. All expose
+bAnimationDriven=false; actor inSyncAnim=0 and ordinary interaction/life/knock
+values. Add only an opt-in `PhotoMode 1` recovery path through the existing
+CommonLib graph getter/setter, never an automatic lifecycle write. The SDK's
+Script::ParseParameters parses the optional integer action; no arguments retain
+the original toggle. No relocation/slot is invented. Engine ABI, command parsing,
+graph write behavior, movement recovery and save/reload all need in-game checks.
+Portable fake-graph tests validate refusal/no-op paths, setter failure, unchanged
+readback, successful readback, and repeated calls without another write.

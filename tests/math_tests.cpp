@@ -1,4 +1,5 @@
 #include "ImageMath.h"
+#include "PlayerSyncRecovery.h"
 #include "TranslationLanguage.h"
 #include "MCMKey.h"
 #include "PhotoModeInputPolicy.h"
@@ -13,6 +14,36 @@
 
 int main()
 {
+    struct SyncGraph {
+        bool synced{true}, driven{}, available{true}, writable{true}, sticky{};
+        unsigned writes{};
+        bool Get(std::string_view name, bool& value) {
+            assert(name == "bIsSynced" || name == "bAnimationDriven");
+            value = name == "bIsSynced" ? synced : driven;
+            return available;
+        }
+        bool Set(std::string_view name, bool value) {
+            assert(name == "bIsSynced" && !value);
+            ++writes;
+            if (writable && !sticky) synced = value;
+            return writable;
+        }
+    } sync;
+    using Recovery = PhotoMode::SyncRecoveryResult;
+    assert(PhotoMode::ClearPlayerSync(sync, false) == Recovery::refused && sync.writes == 0);
+    sync.available = false;
+    assert(PhotoMode::ClearPlayerSync(sync, true) == Recovery::unavailable && sync.writes == 0);
+    sync.available = true; sync.driven = true;
+    assert(PhotoMode::ClearPlayerSync(sync, true) == Recovery::refused && sync.writes == 0);
+    sync.driven = false; sync.writable = false;
+    assert(PhotoMode::ClearPlayerSync(sync, true) == Recovery::writeFailed);
+    sync.writable = true; sync.sticky = true;
+    assert(PhotoMode::ClearPlayerSync(sync, true) == Recovery::notCleared);
+    sync.sticky = false;
+    assert(PhotoMode::ClearPlayerSync(sync, true) == Recovery::cleared && !sync.synced);
+    const auto writes = sync.writes;
+    assert(PhotoMode::ClearPlayerSync(sync, true) == Recovery::alreadyClear && sync.writes == writes);
+
     struct LanguageSetting {
         std::string_view value;
         std::string_view GetString() const { return value; }

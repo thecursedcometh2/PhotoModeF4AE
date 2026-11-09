@@ -1,6 +1,6 @@
 set_xmakever("3.0.3")
 set_project("PhotoModeF4")
-set_version("2.1.13")
+set_version("2.1.14")
 set_languages("c++23")
 set_encodings("utf-8")
 add_rules("mode.debug", "mode.releasedbg")
@@ -23,7 +23,7 @@ target("photomode-imgui")
     add_syslinks("d3d11", "d3dcompiler", "dxgi")
 
 target("po3_PhotoModeF4")
-    set_version("2.1.13")
+    set_version("2.1.14")
     set_basename("po3_PhotoModeF4")
     set_license("GPL-3.0-or-later") -- Additional linking/modding permissions: THIRD_PARTY_NOTICES.md
     add_rules("commonlibf4.plugin", {
