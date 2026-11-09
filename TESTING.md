@@ -160,3 +160,24 @@ input cache flags, disabled handler indices and first/third-person movement grap
 indices. These fields are read-only diagnostics; engine values and animations
 still require an affected installation for interpretation. Do not overwrite your
 only save while testing; existing stuck saves are not claimed repaired.
+
+## Animation comparison (2.1.13 diagnostic build)
+
+Read-only animation samples run through the F4SE game-thread task queue, at entry/
+exit requests and four timed requests approximately 2, 7, 12 and 17 seconds after
+exit. Actual execution can be delayed by paused menus; the label identifies the
+request and each sample records the camera at execution time. Queued samples do
+not represent an exact synchronous before/after snapshot. Actor state, flags,
+graph count/active index and optional named bool/float probes are logged. An
+unavailable probe is not evidence that a variable is false or zero. Graph names
+and manager layout/virtual APIs require affected-runtime validation; these values
+are diagnostic leads, not a complete animation graph dump or a repair.
+
+Use the same mod configuration for the affected save and a working new game.
+Stand in third person, enter/exit Photo Mode, then hold forward for five seconds,
+release for five seconds, switch to first person and repeat, then switch back to
+third person. Wait 20 seconds after exit before quitting. If samples miss a step,
+repeat entry/exit from that perspective and move immediately after exit. Copy the
+full log before starting the second run and note which log represents which save
+and which actions got stuck. No console commands or saving are required. Re-enable
+Photo Mode to obtain these samples; other mod settings must match between runs.

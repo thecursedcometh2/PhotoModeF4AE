@@ -56,6 +56,7 @@ namespace PhotoMode
 	private:
         void LogMovementState(std::string_view stage) const;
         std::optional<std::chrono::steady_clock::time_point> exitTraceTime;
+        unsigned exitTraceSamplesRemaining{};
         bool enteredFreeCamera{ false };
         bool originalSavingAllowed{ true };
         std::array<bool, 5> originalHandlerStates{};
