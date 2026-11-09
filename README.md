@@ -124,3 +124,9 @@ MCM labels reuse the original mod's `$PM_...` translation keys. Install existing
 English strings provide fallback for newer controls; older translations need not
 be complete. The plugin loads these files into Scaleform without requiring an ESP.
 Settings IDs, bindings, numeric ranges and the optional global hotkey are unchanged.
+
+If third-person movement is stuck repeating the last first-person movement, switch
+to third person, exit Photo Mode and SAM, then open **MCM → Photo Mode → Settings →
+Third Person Fix** outside an interaction. This runs the same manual recovery as
+`PhotoMode 1`; it is never applied automatically. The affected user confirmed
+movement recovery with the command. The MCM button still needs in-game confirmation.

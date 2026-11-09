@@ -205,3 +205,23 @@ or stays repaired. Do not overwrite the original save. If movement works, save t
 a new slot and separately test reloading that slot; persistence is unverified.
 The no-argument `PhotoMode` command and MCM toggle must continue to work. Invalid
 actions must print usage without toggling or writing graph variables.
+
+## Third Person Fix MCM button (2.1.15)
+
+The user supplied a successful 2.1.14 readback log and confirmed that `PhotoMode 1`
+restored movement. This confirms recovery for that affected save, not the original
+trigger or persistence after save/reload. MCM's inspected OptionsList.onButtonPressed
+supports CallExternalFunction; RunConsoleCommand is a hotkey action and is not a
+supported button action. The Settings button calls the po3_PhotoModeF4 Scaleform
+plugin's ThirdPersonFix function, which queues the existing recovery routine through
+F4SE's game task queue. FunctionHandler uses the SDK Scaleform allocator and its
+constructor reference is released after CreateFunction retains it.
+
+Check button visibility/localization and activation using mouse and controller.
+In ordinary third person outside an interaction, click the button on an affected
+save, close MCM and test starting/stopping/turning and POV switching. Check the
+recovery result in the log. On an unaffected save it must report already clear.
+First-person, active Photo Mode/SAM, interaction and animation-driven cases must
+still refuse. Repeated clicks must remain safe and the ordinary toggle hotkey and
+console command must work. No ESP, Papyrus script or MCM binary is bundled. MCM
+button dispatch, repeated menu opening/closing and game movement tests are pending.

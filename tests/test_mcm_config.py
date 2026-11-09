@@ -18,7 +18,7 @@ class MCMConfig(unittest.TestCase):
         self.assertNotIn('pluginRequirements', menu)
         ids = set()
         persisted = set()
-        types = {'switcher', 'section', 'text', 'slider', 'dropdown', 'keyinput', 'hotkey'}
+        types = {'switcher', 'section', 'text', 'slider', 'dropdown', 'keyinput', 'hotkey', 'button'}
         for page in menu['pages']:
             self.assertTrue(page['pageDisplayName'])
             for control in page['content']:
@@ -53,6 +53,16 @@ class MCMConfig(unittest.TestCase):
                     self.assertIn(value, ('0', '1'))
         self.assertEqual(persisted, {(section, key) for section in ini.sections() for key in ini[section]})
         self.assertFalse(any('ScreenshotIndex' in key for _, key in persisted))
+
+    def test_third_person_fix_button_uses_native_callback(self):
+        menu = json.loads((CONFIG / 'config.json').read_text())
+        buttons = [control for control in menu['pages'][0]['content'] if control['type'] == 'button']
+        self.assertEqual(len(buttons), 1)
+        self.assertEqual(buttons[0]['text'], '$PM_ThirdPersonFix_Text')
+        self.assertEqual(buttons[0]['action'], {
+            'type': 'CallExternalFunction', 'plugin': 'po3_PhotoModeF4',
+            'function': 'ThirdPersonFix', 'params': []})
+        self.assertNotIn('valueOptions', buttons[0])
 
     def test_registered_hotkey_uses_existing_console_command(self):
         bindings = json.loads((CONFIG / 'keybinds.json').read_text())

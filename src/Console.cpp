@@ -63,6 +63,37 @@ namespace Console
 
 	}
 
+    namespace
+    {
+        class ThirdPersonFixHandler final : public Scaleform::GFx::FunctionHandler
+        {
+        public:
+            void Call(const Params& params) override
+            {
+                if (params.argCount != 0) return;
+                if (const auto tasks = F4SE::GetTaskInterface()) {
+                    tasks->AddTask([] { detail::RecoverPlayerSync(); });
+                }
+            }
+        };
+
+        bool RegisterMCMFunctions(Scaleform::GFx::Movie* movie, Scaleform::GFx::Value* plugin)
+        {
+            if (!movie || !plugin) return false;
+            auto* handler = new ThirdPersonFixHandler();
+            Scaleform::GFx::Value function;
+            movie->CreateFunction(&function, handler);
+            handler->Release();
+            return plugin->SetMember("ThirdPersonFix", function);
+        }
+    }
+
+    bool RegisterMCM()
+    {
+        const auto scaleform = F4SE::GetScaleformInterface();
+        return scaleform && scaleform->Register("po3_PhotoModeF4", RegisterMCMFunctions);
+    }
+
 	void Install()
 	{
 		const auto functions = RE::SCRIPT_FUNCTION::GetConsoleFunctions();
