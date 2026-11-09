@@ -33,7 +33,7 @@ namespace Font
         const auto asset = AssetPath(name).string();
         font = io.Fonts->AddFontFromFileTTF(asset.c_str(), 0.0f, &config);
         if (!font) {
-            logger::error("Could not load font asset {} (configured as {}). Check the installed ImGui Fonts files or fonts.ini.", asset, name);
+            logger::error("Could not load font {} ({}). Check ImGui Fonts or fonts.ini.", asset, name);
             font = io.Fonts->AddFontDefault();
         }
 		if (a_loadIcons) {

@@ -21,7 +21,7 @@ namespace Translation
 				return it->second;
 			}
 
-			// Retain a distinct, stable string even for unknown third-party keys.
+			// Keep unknown labels stable.
             return missingTranslations.try_emplace(std::string(a_key), std::string(a_key)).first->second;
 		}
 

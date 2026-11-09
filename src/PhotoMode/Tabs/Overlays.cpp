@@ -12,7 +12,7 @@ namespace PhotoMode
         const std::filesystem::path root("Data/Interface/PhotoMode/overlays");
         std::error_code error;
         const auto files = FindOverlayFiles(root, error);
-        if (error) logger::error("Overlay discovery at {} failed: {}. Original Photo Mode overlay assets must be installed separately.", std::filesystem::absolute(root).string(), error.message());
+        if (error) logger::error("Could not scan overlays at {}: {}. Install the original overlay files.", std::filesystem::absolute(root).string(), error.message());
         std::uint32_t categoryIndex = 0;
         std::size_t loaded = 0;
         for (const auto& [category, paths] : files) {

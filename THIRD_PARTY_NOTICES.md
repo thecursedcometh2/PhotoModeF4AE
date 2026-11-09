@@ -1,42 +1,43 @@
 # Licensing and redistribution
 
-Photo Mode's original source is Copyright (c) powerofthree, MIT; the unchanged
-original notice is LICENSE.txt. This modernization does not declare the combined
-DLL MIT-only.
+Original Photo Mode: Copyright (c) powerofthree. MIT.
+Keep the unchanged notice in LICENSE.txt.
+The combined DLL is not MIT-only.
 
-libxse/CommonLibF4 and CommonLib Shared are GPL-3.0-or-later with the modding and
-linking exceptions copied into licenses/. The modding exception permits interaction
-with the proprietary game; it does not remove obligations for library code.
-The linking exception requires Corresponding Source for linked Modding Libraries
-as well as covered work. For distribution, provide the exact plugin source,
-build scripts, pinned submodules, and source of linked dependencies (including
-modifications), with their notices and exceptions. Do not treat a DLL upload as
-a complete source-compliance package. Keep the MIT notice for original Photo Mode
-files and all original third-party notices.
+CommonLibF4 and CommonLib Shared use GPL-3.0-or-later with modding/linking exceptions.
+The modding exception permits interaction with the proprietary game.
+It does not remove source obligations for library code.
+The linking exception requires Corresponding Source for linked Modding Libraries.
+Ship the exact plugin source, build files, pinned libraries and their changes.
+Include dependency source, notices and exceptions. A DLL alone is not enough.
+The source ZIP includes tracked inputs plus six hash-checked package archives.
+Keep the license files with releases. Full license text is unchanged in licenses/.
 
-Other linked code: Dear ImGui (Omar Cornut and contributors, MIT), powerofthree's
-ImGui extensions (retain upstream MIT notice), CLibUtil (powerofthree, MIT),
-DirectXTex (Microsoft, MIT), FreeType (The FreeType Project, FreeType License
-option; acknowledge use of FreeType), spdlog (Gabi Melman and contributors, MIT),
-RapidFuzz (Max Bachmann and contributors, MIT), unordered_dense (Martin Leitner-Ankerl,
-MIT), SRELL (Nozomu Katoo, BSD-2-Clause). CLibUtil embeds SimpleIni
-(MIT) and XoshiroCpp (MIT); retain their header notices. Corresponding source
-must retain those notices. This software is based in part on the work of the
-FreeType Team (https://www.freetype.org). The corresponding-source ZIP includes
-the tracked plugin/library build inputs and the six checksum-verified linked
-package source archives; no optional ImGui sample font binaries are included. Dependency license files must accompany final releases.
+| Code | Authors | License |
+| --- | --- | --- |
+| Dear ImGui | Omar Cornut and contributors | MIT |
+| ImGui extensions | powerofthree | MIT |
+| CLibUtil | powerofthree | MIT |
+| DirectXTex | Microsoft | MIT |
+| FreeType | The FreeType Project | FreeType License option |
+| spdlog | Gabi Melman and contributors | MIT |
+| RapidFuzz | Max Bachmann and contributors | MIT |
+| unordered_dense | Martin Leitner-Ankerl | MIT |
+| SRELL | Nozomu Katoo | BSD-2-Clause |
 
-Font Awesome icon-name header carries its existing attribution. No third-party
-font files or Bethesda controller glyph data are distributed. Install ImGui Fonts
-(Nexus 88107) separately under its own terms. The missing ignored BGSFonts.h is
-not part of that external mod dependency: it was referenced as compressed embedded
-controller TTF data. Its provenance and redistribution rights could not be verified;
-plain controller button labels replace it.
+CLibUtil embeds SimpleIni and XoshiroCpp (MIT). Keep their header notices.
+This software is based in part on the work of the FreeType Team:
+https://www.freetype.org.
 
-ImGui's built-in emergency fallback embeds ProggyClean (Copyright 2004, 2005
-Tristan Grimmer, MIT). Its notice is included separately. This permitted fallback
-is distinct from the mandatory externally installed ImGui Fonts assets and the
-unavailable Bethesda controller glyphs; no standalone font binary is packaged.
-ImGui's included stb helpers (Sean Barrett and contributors) retain their MIT
-alternative notices in licenses/ and their complete source headers in the source
-bundle. The external font requirement is unchanged.
+The Font Awesome icon-name header keeps its attribution.
+Install ImGui Fonts (Nexus 88107) separately under its own terms.
+No standalone third-party fonts or Bethesda controller glyphs are bundled.
+The missing BGSFonts.h held embedded controller TTF data. Its rights were unknown.
+Text labels replace it. That header is separate from the external font requirement.
+
+ImGui's emergency fallback embeds ProggyClean.
+Copyright 2004, 2005 Tristan Grimmer. MIT. Its notice is included.
+It does not replace the required ImGui Fonts mod.
+Optional ImGui sample font binaries are excluded from the source ZIP.
+ImGui's stb helpers are by Sean Barrett and contributors.
+Their MIT notices remain in licenses/ and the source headers.

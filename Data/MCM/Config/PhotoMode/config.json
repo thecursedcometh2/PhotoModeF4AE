@@ -100,6 +100,17 @@
           }
         },
         {
+          "type": "button",
+          "text": "$PM_ThirdPersonFix_Text",
+          "help": "$PM_ThirdPersonFix_Help",
+          "action": {
+            "type": "CallExternalFunction",
+            "plugin": "po3_PhotoModeF4",
+            "function": "ThirdPersonFix",
+            "params": []
+          }
+        },
+        {
           "type": "text",
           "text": "$PM_MCM_Extra003"
         }

@@ -134,7 +134,7 @@ namespace PhotoMode
 		ImGui::BeginDisabled(!currentState.visible);
 		{
 			if (ImGui::BeginTabBar("Player#TopBar", 0)) {
-				// ugly af, improve later
+				// Keep tab widths equal.
 				const float width = ImGui::GetContentRegionAvail().x / 3;
 
 				if (a_resetTabs) {

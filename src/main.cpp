@@ -47,7 +47,11 @@ extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Load(const F4SE::LoadInterface* a_f
 
 	logger::info("Game version : {}", a_f4se->RuntimeVersion().string());
 
-	Settings::GetSingleton()->LoadMCMSettings();
+	if (!Console::RegisterMCM()) {
+        logger::error("Failed to register Photo Mode MCM functions");
+        return false;
+    }
+    Settings::GetSingleton()->LoadMCMSettings();
 
 	const auto messaging = F4SE::GetMessagingInterface();
 	if (!messaging || !messaging->RegisterListener(MessageHandler)) {

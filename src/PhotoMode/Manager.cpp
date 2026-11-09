@@ -86,6 +86,7 @@ namespace PhotoMode
 
 	void Manager::Activate()
 	{
+        if (activated) return;
         Settings::GetSingleton()->LoadMCMSettings();
 		cameraTab.GetOriginalState();
 		timeTab.GetOriginalState();
@@ -104,13 +105,15 @@ namespace PhotoMode
 			hiddenUI = true;
 		}
 
-		// Preserve pre-existing restrictions owned by the game or another mod.
+		// Keep existing save restrictions.
         originalSavingAllowed = RE::BGSSaveLoadManager::GetSingleton()->savingAllowed;
         RE::BGSSaveLoadManager::GetSingleton()->savingAllowed = false;
 
 		// toggle freecam
+        enteredFreeCamera = false;
 		if (originalcameraState != RE::CameraState::kFree) {
 			pcCamera->ToggleFreeCameraMode(false);
+            enteredFreeCamera = pcCamera->currentState && pcCamera->currentState->id == RE::CameraState::kFree;
 		}
 
         EnsureViewRollHook();
@@ -202,6 +205,7 @@ namespace PhotoMode
 
 	void Manager::Deactivate()
 	{
+        if (!activated) return;
         MANAGER(Input)->ReleaseVerticalMovement();
 		Revert(true);
 
@@ -210,9 +214,11 @@ namespace PhotoMode
 		cachedCharacter = nullptr;
 
 		// reset camera
-		if (originalcameraState != RE::CameraState::kFree) {
-			RE::PlayerCamera::GetSingleton()->ToggleFreeCameraMode(false);
-		}
+		if (const auto camera = RE::PlayerCamera::GetSingleton();
+            enteredFreeCamera && camera && camera->currentState && camera->currentState->id == RE::CameraState::kFree) {
+            camera->ToggleFreeCameraMode(false);
+        }
+        enteredFreeCamera = false;
 
 		// reset controls
 		if (allowTextInput) {
@@ -250,6 +256,7 @@ namespace PhotoMode
 			activeGlobal->value = 0.0f;
 		}
 	}
+
 
 	bool Manager::ToggleActive()
 	{

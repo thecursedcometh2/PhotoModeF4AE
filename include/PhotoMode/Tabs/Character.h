@@ -36,7 +36,7 @@ namespace PhotoMode
 		RE::Actor*  character{ nullptr };
 		std::string characterName{};
 
-		// names should ideally be pulled from a shared map with different indices for characters but this will do
+		// Cache each character separately.
 		ImGui::FormComboBoxFiltered<RE::TESEffectShader>    effectShaders{ "$PM_EffectShaders" };
 		ImGui::FormComboBoxFiltered<RE::TESIdleForm>        idles{ "$PM_Idles" };
 		ImGui::FormComboBoxFiltered<RE::BGSReferenceEffect> effectVFX{ "$PM_VisualEffects" };

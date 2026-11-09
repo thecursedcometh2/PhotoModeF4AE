@@ -34,7 +34,6 @@ namespace PhotoMode
 	{
 		originalState.Revert();
 
-		// is this needed when value is updated every frame?
 		currentTimescaleMult = 1.0f;
 		currentGlobalTimeMult = 1.0f;
 

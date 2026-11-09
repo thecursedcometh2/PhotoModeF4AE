@@ -44,6 +44,12 @@ jobs:
           cl /nologo /std:c++latest /EHsc /Iinclude tests/math_tests.cpp /Fe:math_tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./math_tests.exe
+      - name: Prepare host Python build tools
+        run: |
+          python -m pip install --no-deps --only-binary=:all: --require-hashes -r scripts/ci-build-tools.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          meson --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Configure
         run: |
           xmake g --pkg_searchdirs="${{ github.workspace }}/vendor"

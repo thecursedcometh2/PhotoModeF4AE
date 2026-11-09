@@ -18,7 +18,7 @@ class MCMConfig(unittest.TestCase):
         self.assertNotIn('pluginRequirements', menu)
         ids = set()
         persisted = set()
-        types = {'switcher', 'section', 'text', 'slider', 'dropdown', 'keyinput', 'hotkey'}
+        types = {'switcher', 'section', 'text', 'slider', 'dropdown', 'keyinput', 'hotkey', 'button'}
         for page in menu['pages']:
             self.assertTrue(page['pageDisplayName'])
             for control in page['content']:
@@ -54,6 +54,16 @@ class MCMConfig(unittest.TestCase):
         self.assertEqual(persisted, {(section, key) for section in ini.sections() for key in ini[section]})
         self.assertFalse(any('ScreenshotIndex' in key for _, key in persisted))
 
+    def test_third_person_fix_button_uses_native_callback(self):
+        menu = json.loads((CONFIG / 'config.json').read_text())
+        buttons = [control for control in menu['pages'][0]['content'] if control['type'] == 'button']
+        self.assertEqual(len(buttons), 1)
+        self.assertEqual(buttons[0]['text'], '$PM_ThirdPersonFix_Text')
+        self.assertEqual(buttons[0]['action'], {
+            'type': 'CallExternalFunction', 'plugin': 'po3_PhotoModeF4',
+            'function': 'ThirdPersonFix', 'params': []})
+        self.assertNotIn('valueOptions', buttons[0])
+
     def test_registered_hotkey_uses_existing_console_command(self):
         bindings = json.loads((CONFIG / 'keybinds.json').read_text())
         menu = json.loads((CONFIG / 'config.json').read_text())
@@ -68,6 +78,25 @@ class MCMConfig(unittest.TestCase):
 
 
 class MCMTranslations(unittest.TestCase):
+    def test_engine_translation_files(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('mcm_fallback', ROOT / 'scripts/update_mcm_fallback.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.assertEqual(module.FALLBACK.read_bytes(), module.expected_fallback())
+        for path in (module.ENGLISH, module.FALLBACK):
+            data = path.read_bytes()
+            self.assertTrue(data.startswith(b'\xff\xfe'))
+            keys = set()
+            for line in data.decode('utf-16').splitlines():
+                if not line: continue
+                key, value = line.split('\t', 1)
+                self.assertTrue(key.startswith('$'), line)
+                self.assertTrue(value.strip(), key)
+                self.assertNotIn(key, keys)
+                keys.add(key)
+
+
     def test_all_display_keys_have_english_fallback(self):
         data = (ROOT / 'Data/Interface/Translations/PhotoMode_EN.txt').read_bytes()
         self.assertTrue(data.startswith(b'\xff\xfe'))

@@ -50,6 +50,7 @@ namespace PhotoMode
 		std::pair<ImGui::Texture*, float> GetOverlay() const;
 
 	private:
+        bool enteredFreeCamera{ false };
         bool originalSavingAllowed{ true };
         std::array<bool, 5> originalHandlerStates{};
         std::array<RE::BSInputEventUser*, 5> originalHandlers{};

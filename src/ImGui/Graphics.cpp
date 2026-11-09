@@ -41,7 +41,7 @@ namespace ImGui
 						DirectX::ScratchImage tmpImage;
 						if (FAILED(DirectX::Resize(*image->GetImage(0, 0, 0), screenSize.first, screenSize.second, DirectX::TEX_FILTER_CUBIC, tmpImage))) return false;
 
-						image.reset();  // is this needed
+						image.reset();
 						image = std::make_shared<DirectX::ScratchImage>(std::move(tmpImage));
 					}
 				}

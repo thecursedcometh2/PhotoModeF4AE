@@ -66,7 +66,7 @@ namespace Screenshot
         std::error_code error;
         if (!prefix.parent_path().empty()) std::filesystem::create_directories(prefix.parent_path(), error);
         if (!error) index = NextFileIndex(prefix, index, error);
-        if (error) logger::error("Could not scan screenshot destination {}: {}. Exclusive creation still prevents replacement.", prefix.string(), error.message());
+        if (error) logger::error("Could not scan photo folder {}: {}. Existing photos are protected.", prefix.string(), error.message());
     }
 
     void Manager::IncrementIndex()
@@ -133,7 +133,7 @@ namespace Screenshot
         } else {
             saved = Texture::SaveNewPNG(input, prefix, index, savedPath);
         }
-        // Suppress vanilla capture and advance the index only after successful encoding.
+        // Advance the index only after a successful save. Skip vanilla capture.
         if (saved) {
             logger::info("Saved screenshot {}", savedPath.string());
             IncrementIndex();
